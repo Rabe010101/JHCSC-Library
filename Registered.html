@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registered Users</title>
+  <link rel="stylesheet" href="Registered.css">
+</head>
+<body>
+  <nav>
+    <div class="logo-title">
+      <img src="images/School_logo.png" alt="logo" class="logo">
+      <span class="site-title">JHCSC</span>
+    </div>
+    <ul>
+      <li><a href="Dashboard.php">Dashboard</a></li>
+      <li><a href="Account.html">Account</a></li>
+    </ul>
+  </nav>
+
+  <h1 class="registered-users">Registered Users</h1>
+  
+  <div class="search-filter">
+    <input type="text" id="searchBox" placeholder="Search by name or email..." class="search-box">
+    <select id="yearFilter" class="year-dropdown">
+      <option value="">All Year Levels</option>
+      <option value="1st Year">1st Year</option>
+      <option value="2nd Year">2nd Year</option>
+      <option value="3rd Year">3rd Year</option>
+      <option value="4th Year">4th Year</option>
+    </select>
+    <select id="courseFilter" class="course-dropdown">
+      <option value="">All Courses</option>
+      <option value="BSN">BSN</option>
+      <option value="BSIT">BSIT</option>
+      <option value="BSEd">BSEd</option>
+      <option value="BSHM">BSHM</option>
+      <option value="BSE">BSE</option>
+      <option value="BSTM">BSTM</option>
+      <option value="JD">JD</option>
+    </select>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Registered ID</th>
+          <th>Full Name</th>
+          <th>Course</th>
+          <th>Year Level</th>
+          <th>Email</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody">
+        </tbody>
+    </table>
+  </div>
+
+  <script src="Registered.js"></script>
+</body>
+</html>

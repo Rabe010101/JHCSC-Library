@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account</title>
+  <link rel="stylesheet" href="Account.css">
+</head>
+<body>
+  <nav>
+    <div class="logo-title">
+      <img src="images/School_logo.png" alt="logo" class="logo">
+      <span class="site-title">JHCSC</span>
+    </div>
+    <ul>
+      <li><a href="Dashboard.php">Dashboard</a></li>
+      <li><a href="Account.html" class="active">Account</a></li>
+    </ul>
+  </nav>
+
+  <div class="account-card">
+    <button id="logoutBtn" class="logout-btn">Log Out</button>
+    <h2>My Account</h2>
+    <p><strong>First Name:</strong> <span id="displayFirstname"></span></p>
+    <p><strong>Surname:</strong> <span id="displaySurname"></span></p>
+    <p><strong>Email:</strong> <span id="displayEmail"></span></p>
+    <p><strong>Password:</strong> <span id="displayPassword">********</span></p>
+
+    <div class="buttons-bottom">
+      <button id="editAccountBtn">Edit Account</button>
+    </div>
+  </div>
+
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Edit Account</h2>
+      <form id="editForm">
+        <label>First Name</label>
+        <input type="text" id="editFirstname" required>
+        <label>Surname</label>
+        <input type="text" id="editSurname" required>
+        <label>New Password (leave empty to keep current password)</label>
+        <input type="password" id="editPassword">
+        <button type="submit">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="Account.js"></script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "century gothic", sans-serif;
+}
+
+body {
+  background: url("images/red.jpg") no-repeat center center/cover;
+  min-height: 100vh;
+  color: white;
+}
+
+/* Navbar */
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 50px;
+  background: #fff;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* Logo + Title wrapper */
+nav .logo-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+nav .logo {
+  height: 50px;
+}
+
+nav .site-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #139734;
+  letter-spacing: 1px;
+  line-height: 1;
+  margin: 0; /* remove unwanted top margin */
+}
+
+/* Navigation links */
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 20px;
+}
+
+nav ul li a {
+  text-decoration: none;
+  color: #000000;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 8px 14px;
+  border-radius: 2px;
+  transition: 0.3s;
+}
+nav ul li a:hover {
+  background: #139734;
+  color: #fff;
+}
+
+/* Hero */
+.hero {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 80px;
+  position: relative;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.hero-text {
+  position: relative;
+  max-width: 600px;
+  z-index: 1;
+}
+
+.hero h1 {
+  font-size: 50px;
+  margin-bottom: 15px;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.hero p {
+  font-size: 17px;
+  margin-bottom: 12px;
+}
+
+.hero .btn {
+  display: inline-block;
+  padding: 14px 28px;
+  background:#139734 ;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: bold;
+  border-radius: 2px;
+  transition: 0.3s;
+}
+.hero .btn:hover {
+  background: #ffa600 ;
+  color: #000000;
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Shared modal styles */
+.modal-content {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  color: #111111;
+  padding: 35px 40px;
+  border-radius: 8px;
+  width: 350px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.35);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Wider container for Sign Up */
+.modal-content.signup-active {
+  width: 420px;
+}
+
+.close {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #555;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.close:hover {
+  color: red;
+}
+
+.modal-content h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #004d14;
+}
+
+/* Form styling */
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.modal-content label {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.modal-content input,
+.modal-content select {
+  padding: 10px;
+  border: 1px solid #000000;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 100%;
+  outline: none;
+  transition: 0.3s;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+  border-color: #139734;
+  box-shadow: 0 0 5px rgba(19, 151, 52, 0.5);
+}
+
+/* Buttons */
+.modal-content button {
+  padding: 12px;
+  background: #139734;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.modal-content button:hover {
+  background: #0fb946;
+}
+
+
+/* Secondary button (for 'Create account') */
+.secondary-btn {
+  display: block; /* Makes the <a> tag fill the width */
+  padding: 12px;
+  background: #eee;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.3s;
+  text-decoration: none; /* Remove underline from link */
+  text-align: center; /* Center the text */
+  margin-top: 15px; /* Add space above it */
+}
+.secondary-btn:hover {
+  background: #ddd;
+  color: #000;
+}
+
+
+/* Divider text */
+.or-text {
+  text-align: center;
+  font-size: 14px;
+  margin: 0;
+  color: #666;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {opacity: 0; transform: translate(-50%, -55%);}
+  to {opacity: 1; transform: translate(-50%, -50%);}
+}
+
+/* --- Styles for Show/Hide Password --- */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-toggle-icon {
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #888;
+}
+
+/* --- Styles for Google Sign-In Button --- */
+.google-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: #4285F4;
+    color: white;
+    text-decoration: none;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 500;
+    padding: 10px 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px 0 rgba(0,0,0,0.25);
+    transition: box-shadow .2s ease;
+    /* Make it fit your form */
+    width: 100%;
+    justify-content: center;
+    border: none; /* Add this to override other button styles */
+}
+.google-btn:hover {
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.25);
+    background-color: #357ae8; /* Add a hover color */
+}
+.google-btn-icon {
+    width: 18px;
+    height: 18px;
+    background-color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 16px;
+}
+.google-btn-icon img {
+    width: 16px;
+    height: 16px;
+}
+
+.form-links {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px; /* Keeps the space from the buttons above */
+}
+
+/* Make the existing 'Create account' button flexible */
+.secondary-btn {
+  flex: 1; /* Make it share the space */
+  margin-top: 0; /* We don't need its individual margin anymore */
+  padding: 12px 10px; /* Adjust padding for a cleaner look */
+  font-size: 14px;
+}
+
+/* Style for the new 'Resend code' button */
+.resend-btn {
+  flex: 1; /* Make it share the space */
+  display: block;
+  padding: 12px 10px;
+  background: #eee;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.3s;
+  text-decoration: none;
+  text-align: center;
+}
+.resend-btn:hover {
+  background: #ddd;
+  color: #000;
+}
+#resendModal .resend-btn:hover {
+  background: #0fb946;
+}

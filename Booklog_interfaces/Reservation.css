@@ -1,0 +1,245 @@
+body {
+  margin: 0;
+  font-family: "Century Gothic", sans-serif;
+  background: url("../images/Library.png") no-repeat center center/cover;
+  color: #272323;
+}
+
+/* Navbar */
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  padding: 10px 30px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Logo and site title alignment */
+.logo-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+nav .logo {
+  height: 45px;
+}
+
+.site-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #139734;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+/* Navigation links */
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+nav ul li a {
+  text-decoration: none;
+  color: #333;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+}
+
+nav ul li a.active,
+nav ul li a:hover {
+  background: #92ffb2;
+  color: #000000;
+  border-radius: 3px;
+}
+
+/* Book Logs Menu */
+.book-logs {
+  margin: 20px 30px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.book-logs span {
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.book-logs a {
+  text-decoration: none;
+  color: #ffffff;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.book-logs a.active,
+.book-logs a:hover {
+  color: #1eff43;
+}
+
+/* Search and Filter (below book logs) */
+.search-filter {
+  margin: 10px 30px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-filter input,
+.search-filter select {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  height: 34px;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 80%;
+  vertical-align: middle;
+}
+
+.search-filter input {
+  width: 220px;
+  font-style: italic;
+}
+
+.search-filter select,
+.status-dropdown {
+  color: rgb(78, 78, 78);
+}
+
+.search-filter input:focus,
+.search-filter select:focus {
+  outline: none;
+  border-color: #00c732;
+}
+
+.status-dropdown {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+/* Table */
+.table-container {
+  margin: 25px auto;
+  width: 95%;
+  background: #fff;
+  padding: 8px;
+  border-radius: 2px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 90%;
+}
+
+thead {
+  background: #046421;
+  color: #fff;
+}
+
+th, td {
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+
+/* Buttons */
+.btn-claim {
+  background: rgb(0, 153, 38);
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.btn-claim:hover {
+  background: rgb(255, 167, 4);
+}
+
+.btn-cancel {
+  background: rgb(255, 166, 0);
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 2px;
+}
+
+/* Note */
+.note {
+  margin: 20px 30px;
+  font-size: 13px;
+  color: #ffffff;
+  font-style: italic;
+}
+
+/* Book Logs Menu Hover Colors */
+a[href="IssuedBooks.html"]:hover,
+a[href="NotReturned.html"]:hover,
+a[href="Returned.html"]:hover {
+  color: #f1cd2c;
+}
+a[href="Reservation.html"]:hover { /* keep hover color consistent */
+  color: #f1cd2c;
+}
+
+.btn-delete {
+  background: rgb(0, 128, 255);
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.btn-delete:hover {
+     background: rgb(255, 167, 4);
+}
+
+.btn-admin-cancel {
+  background: rgb(255, 0, 0);
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-top: 5px; /* Add some space between the buttons */
+  transition: background 0.2s;
+}
+
+.btn-admin-cancel:hover {
+     background: rgb(255, 167, 4);
+}
+
+.action-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.btn-enter-code {
+  background: #ff8c00; /* A warning/pending orange */
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.btn-enter-code:hover {
+  background: #e47d00;
+}

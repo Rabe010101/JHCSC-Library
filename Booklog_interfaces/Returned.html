@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Returned Books</title>
+  <link rel="stylesheet" href="Returned.css">
+</head>
+<body>
+  <nav>
+    <div class="logo-title">
+      <img src="../images/School_logo.png" alt="logo" class="logo">
+      <span class="site-title">JHCSC</span>
+    </div>
+    <ul>
+      <li><a href="../Dashboard.php">Dashboard</a></li>
+      <li><a href="../Account.html">Account</a></li>
+    </ul>
+  </nav>
+
+  <div class="book-logs">
+    <span>Book logs   |</span>
+    <a href="Reservation.html">Reservation list</a>
+    <a href="IssuedBooks.html">Issued books</a>
+    <a href="NotReturned.html">Not Returned books</a>
+    <a href="Returned.html" class="active">Returned books</a>
+  </div>
+
+  <div class="search-filter">
+    <input type="text" id="searchBox" placeholder="Search here...">
+  </div>
+
+  <section class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Transaction #</th>
+          <th>Book Title</th>
+          <th>Date Issued</th>
+          <th>Date Returned</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="returnedBooksTableBody">
+        </tbody>
+    </table>
+  </section>
+  <p class="note">This page lists all books that have been successfully returned.</p>
+  <script src="Returned.js"></script>
+</body>
+</html>

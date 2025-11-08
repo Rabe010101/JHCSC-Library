@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Not Returned Books</title>
+  <link rel="stylesheet" href="NotReturned.css">
+  
+  <style>
+    .otp-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .otp-input {
+      width: 45px;
+      height: 55px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 600;
+      border: none;
+      border-bottom: 2px solid #ccc;
+      background-color: transparent;
+    }
+    .otp-input:focus {
+      outline: none;
+      border-bottom-color: #046421;
+    }
+    /* Styles for the modal itself */
+    .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 2000; 
+        left: 0;
+        top: 0;
+        width: 100%; 
+        height: 100%; 
+        overflow: auto; 
+        background-color: rgba(0,0,0,0.5); 
+    }
+    .modal-content {
+      width: 400px; 
+      background: #fff; 
+      border-radius: 5px; 
+      padding: 25px; 
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      color: #333;
+      margin: auto; 
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .close {
+      float: right; 
+      font-size: 28px; 
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .close:hover {
+      color: #d32f2f;
+    }
+    .resend-text {
+      display: block;
+      text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
+      color: #333;
+    }
+    .resend-link-action {
+      color: #046421;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .resend-link-action:hover {
+      text-decoration: underline;
+    }
+    .action-cell {
+        text-align: center;
+    }
+    /* New button style from Reservation.css */
+    .btn-enter-code {
+      background: #ff8c00; 
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    .btn-enter-code:hover {
+      background: #e47d00;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo-title">
+      <img src="../images/School_logo.png" alt="logo" class="logo">
+      <span class="site-title">JHCSC</span>
+    </div>
+    <ul>
+      <li><a href="../Dashboard.php">Dashboard</a></li>
+     <li><a href="../Account.html">Account</a></li>
+    </ul>
+  </nav>
+
+  <div class="book-logs">
+    <span>Book logs   |</span>
+    <a href="Reservation.html">Reservation list</a>
+    <a href="IssuedBooks.html">Issued books</a>
+    <a href="NotReturned.html"  class="active">Not Returned books</a>
+    <a href="Returned.html">Returned books</a>
+  </div>
+
+  <div class="search-filter">
+    <input type="text" id="searchBox" placeholder="Search here...">
+  </div>
+
+  <section class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Transaction #</th>
+          <th>Book Title</th>
+          <th>Date Issued</th>
+          <th>Due Date</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="notReturnedTableBody">
+        </tbody>
+    </table>
+  </section>
+  <p class="note">This page lists all issued books that are past their due date.</p>
+  
+  <div id="otpModal" class="modal">
+    <div class="modal-content">
+      
+      <span class="close" id="closeOtpModal">&times;</span>
+      
+      <h2 style="color: #046421; margin-bottom: 5px; text-align: center;">Confirm Return</h2>
+      <h3 id="otpBookTitle" style="text-align: center; font-size: 16px; font-weight: bold; color: #333; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px;">(Book Title)</h3>
+
+      <p style="font-size: 14px; color: #333; margin-bottom: 15px; line-height: 1.5; text-align: center;">
+        An email with a 5-digit OTP has been sent to 
+        <b id="otpUserEmail" style="color: #046421;">(user@email.com)</b>. 
+        Please ask the user for the code to complete the transaction.
+      </p>
+      
+      <form id="otpForm">
+        <input type="hidden" id="otpIssuedId">
+        
+        <label style="font-weight: bold; font-size: 14px; color: #333; text-align: center; display: block;">Enter 5-Digit OTP:</label>
+        
+        <div id="otpContainer" class="otp-container">
+            <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" data-index="0" class="otp-input">
+            <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" data-index="1" class="otp-input">
+            <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" data-index="2" class="otp-input">
+            <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" data-index="3" class="otp-input">
+            <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" data-index="4" class="otp-input">
+        </div>
+        
+        <input type="hidden" id="otpCodeCombined">
+
+        <button type="submit" class="btn-return" style="width: 100%; margin-top: 10px; padding: 12px; font-size: 16px;">
+          Verify and Return Book
+        </button>
+
+        <p class="resend-text">
+          Didn't get a code? 
+          <a href="#" id="resendOtpLink" class="resend-link-action">Resend code</a>
+        </p>
+      </form>
+    </div>
+  </div>
+  
+  <script src="NotReturnedBooks.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+@import url("Reservation.css"); /* reuse base styles */
+
+/* Table header color */
+thead {
+  background: #006d21; /* dark green */
+  color: #fff;
+}
+
+/* Return Button */
+.btn-action {
+  background: #28a745;
+  color: #fff;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-action:hover {
+  background: #ff8b07;
+}

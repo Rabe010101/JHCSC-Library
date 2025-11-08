@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservation List</title>
+  <link rel="stylesheet" href="Reservation.css">
+  
+  <style>
+    /* This is your existing style for the OTP boxes */
+    .otp-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .otp-input {
+      width: 45px;
+      height: 55px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 600;
+      border: none;
+      border-bottom: 2px solid #ccc;
+      background-color: transparent;
+    }
+    .otp-input:focus {
+      outline: none;
+      border-bottom-color: #046421; /* Green focus color */
+    }
+
+    /* This is your existing style for centering */
+    #otpModal .modal-content {
+      margin: auto; 
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* --- MODIFIED: Styles for the resend link --- */
+    /* This class is now on the <p> tag */
+    .resend-text {
+      display: block;
+      text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
+      color: #333; /* Changed from green to default text color */
+    }
+    /* This new class is for the <a> tag */
+    .resend-link-action {
+      color: #046421;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .resend-link-action:hover {
+      text-decoration: underline;
+    }
+  </style>
+
+</head>
+<body>
+  <nav>
+    <div class="logo-title">
+      <img src="../images/School_logo.png" alt="logo" class="logo">
+      <span class="site-title">JHCSC</span>
+    </div>
+    <ul>
+      <li><a href="../Dashboard.php">Dashboard</a></li>
+       <li><a href="../Account.html">Account</a></li>
+    </ul>
+  </nav>
+
+  <div class="book-logs">
+    <span>Book logs   |</span>
+    <a href="Reservation.html" class="active">Reservation list</a>
+    <a href="IssuedBooks.html">Issued books</a>
+    <a href="NotReturned.html">Not Returned books</a>
+    <a href="Returned.html">Returned books</a>
+  </div>
+
+  <div class="search-filter">
+    <input type="text" id="searchBox" placeholder="Search here..." class="search-box">
+    <select id="statusFilter" class="status-dropdown">
+      <option value="">All Status</option>
+      <option value="Pending Pickup">Pending for Pickup</option>
+      <option value="Cancelled">Cancelled</option>
+    </select>
+  </div>
+
+  <section class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Name</th>
+          <th>Email address</th>
+          <th>Transaction Number</th>
+          <th>Title of the book</th>
+          <th>Date issued</th>
+          <th>Due date</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+    
+      <tbody id="reservationsTableBody">
+        </tbody>
+    </table>
+  </section>
+
+  <p class="note">Note: Click the "claim" button if the client claim their reserved book(s)</p>
+
+  <div id="otpModal" class="modal" style="display: none; z-index: 2000;">
+    <div class="modal-content" style="width: 400px; background: #fff; border-radius: 5px; padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+      
+      <span class="close" id="closeOtpModal" style="float: right; font-size: 28px; cursor: pointer;">&times;</span>
+      
+      <h2 style="color: #046421; margin-bottom: 5px; text-align: center;">Confirm Pickup</h2>
+      
+      <h3 id="otpBookTitle" style="text-align: center; font-size: 16px; font-weight: bold; color: #333; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px;"></h3>
+
+      <p style="font-size: 14px; color: #333; margin-bottom: 15px; line-height: 1.5; text-align: center;">
+        An email with a 5-digit OTP has been sent to 
+        <b id="otpUserEmail" style="color: #046421;"></b>. 
+        Please ask the user for the code to complete the transaction.
+      </p>
+      
+      <form id="otpForm">
+        <input type="hidden" id="otpReservationId">
+        
+        <label for="otpInput" style="font-weight: bold; font-size: 14px; color: #333; text-align: center; display: block;">Enter 5-Digit OTP:</label>
+        
+        <div id="otpContainer" class="otp-container">
+            <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" data-index="0" class="otp-input">
+            <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" data-index="1" class="otp-input">
+            <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" data-index="2" class="otp-input">
+            <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" data-index="3" class="otp-input">
+            <input type="text" inputmode="numeric" pattern="[0-9]" maxlength="1" data-index="4" class="otp-input">
+        </div>
+        
+        <input type="hidden" name="otpCodeCombined" id="otpCodeCombined">
+
+        <button type="submit" class="btn-claim" style="width: 100%; margin-top: 10px; padding: 12px; font-size: 16px; border: none;">
+          Verify and Issue Book
+        </button>
+
+        <p class="resend-text">
+          Didn't get a code? 
+          <a href="#" id="resendOtpLink" class="resend-link-action">Resend code</a>
+        </p>
+      </form>
+      
+    </div>
+  </div>
+
+  <script src="Reservation.js"></script>
+</body>
+</html>

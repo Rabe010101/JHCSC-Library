@@ -1,0 +1,65 @@
+@import url("Reservation.css");
+
+/* Book Logs Menu */
+.book-logs {
+  margin: 20px 30px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.book-logs span {
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.book-logs a {
+  text-decoration: none;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.book-logs a.active,
+.book-logs a:hover {
+  color: #1eff43;
+}
+
+/* Search Bar */
+.search-filter {
+  margin: 10px 30px;
+  font-style: italic;
+}
+
+.search-filter input {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  width: 220px;
+}
+
+thead {
+  background: #006d21;
+  color: #fff;
+}
+
+a[href="Reservation.html"]:hover,
+a[href="NotReturned.html"]:hover,
+a[href="IssuedBooks.html"]:hover {
+  color: #f1cd2c;
+}
+
+/* Delete button styling */
+.delete-btn {
+  background: #ff4d4d;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.delete-btn:hover {
+  background: #ff8800;
+}
