@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // --- USING not_returned_api.php ---
         const apiUrl = `not_returned_api.php?action=getNotReturnedBooks&search=${encodeURIComponent(searchTerm)}&_=${cacheBust}`;
 
-        fetch(apiUrl)
+        fetch(apiUrl, { credentials: 'same-origin' })
             .then(response => response.json())
             .then(data => {
                 tableBody.innerHTML = "";
@@ -90,7 +90,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 fetch(apiFile, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'sendReturnOTP', issuedId: issuedId })
+                    body: JSON.stringify({ action: 'sendReturnOTP', issuedId: issuedId }),
+                    credentials: 'same-origin'
                 })
                 .then(response => response.json())
                 .then(result => {
@@ -159,7 +160,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 action: 'verifyAndReturnBook', 
                 issuedId: issuedId,
                 otp: otp 
-            })
+            }),
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(result => {
@@ -192,7 +194,8 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch(apiFile, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'sendReturnOTP', issuedId: issuedId })
+            body: JSON.stringify({ action: 'sendReturnOTP', issuedId: issuedId }),
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(result => {

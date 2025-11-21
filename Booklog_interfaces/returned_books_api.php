@@ -1,5 +1,12 @@
 <?php
-// returned_books_api.php
+session_start();
+
+// --- SECURITY CHECK ---
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    http_response_code(403); 
+    die(json_encode(['error' => 'Access denied. Administrator privileges required.']));
+}
+// -------------------------------
 
 header('Content-Type: application/json');
 
@@ -8,6 +15,7 @@ $servername = "localhost";
 $username = "root";
 $password = "";
 $dbname = "jhcsc_library";
+
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) {
     die(json_encode(['error' => 'Connection Failed']));
@@ -22,10 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 switch ($action) {
-    // --- ACTION: GET ALL RETURNED BOOKS ---
     case 'getReturnedBooks':
         $search = $_GET['search'] ?? '';
-        
         $sql = "SELECT 
                     ib.id, 
                     ib.transaction_number,
@@ -38,7 +44,7 @@ switch ($action) {
                 FROM issued_books ib
                 JOIN users u ON ib.user_id = u.id
                 JOIN books b ON ib.book_id = b.id
-                WHERE ib.status = 'Returned'"; // The key difference: fetch only 'Returned' books
+                WHERE ib.status = 'Returned'"; 
 
         if (!empty($search)) {
             $sql .= " AND (u.firstname LIKE ? OR u.surname LIKE ? OR u.email LIKE ? OR b.title LIKE ? OR ib.transaction_number LIKE ?)";
@@ -61,7 +67,6 @@ switch ($action) {
         $stmt->close();
         break;
 
-    // --- ACTION: DELETE A RETURNED RECORD (for cleanup) ---
     case 'deleteReturnedRecord':
         $issuedId = $data['issuedId'] ?? 0;
         if ($issuedId > 0) {

@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const searchTerm = searchBox.value;
         const apiUrl = `returned_books_api.php?action=getReturnedBooks&search=${encodeURIComponent(searchTerm)}`;
 
-        fetch(apiUrl)
+        fetch(apiUrl, { credentials: 'same-origin' })
             .then(response => response.json())
             .then(data => {
                 tableBody.innerHTML = ""; // Clear existing table
@@ -46,7 +46,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 fetch('returned_books_api.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'deleteReturnedRecord', issuedId: issuedId })
+                    body: JSON.stringify({ action: 'deleteReturnedRecord', issuedId: issuedId }),
+                    credentials: 'same-origin'
                 })
                 .then(response => response.json())
                 .then(result => {

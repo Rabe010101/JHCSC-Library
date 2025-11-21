@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const cacheBust = new Date().getTime();
         const apiUrl = `reservations_api.php?action=getReservations&search=${encodeURIComponent(searchTerm)}&status=${encodeURIComponent(status)}&_=${cacheBust}`;
 
-        fetch(apiUrl)
+        fetch(apiUrl, { credentials: 'same-origin' })
             .then(response => response.json())
             .then(data => {
                 tableBody.innerHTML = "";
@@ -95,7 +95,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 fetch('reservations_api.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'sendClaimOTP', reservationId: reservationId })
+                    body: JSON.stringify({ action: 'sendClaimOTP', reservationId: reservationId }),
+                    credentials: 'same-origin'
                 })
                 .then(response => response.json())
                 .then(result => {
@@ -136,7 +137,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 fetch('reservations_api.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'adminCancelReservation', reservationId: reservationId })
+                    body: JSON.stringify({ action: 'adminCancelReservation', reservationId: reservationId }),
+                    credentials: 'same-origin'
                 })
                 .then(response => response.json())
                 .then(result => {
@@ -154,7 +156,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 fetch('reservations_api.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'deleteCancelledReservation', reservationId: reservationId })
+                    body: JSON.stringify({ action: 'deleteCancelledReservation', reservationId: reservationId }),
+                    credentials: 'same-origin'
                 })
                 .then(response => response.json())
                 .then(result => {
@@ -204,7 +207,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 action: 'verifyAndClaimReservation', 
                 reservationId: reservationId,
                 otp: otp 
-            })
+            }),
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(result => {
@@ -234,7 +238,8 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch('reservations_api.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'sendClaimOTP', reservationId: reservationId })
+            body: JSON.stringify({ action: 'sendClaimOTP', reservationId: reservationId }),
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(result => {
