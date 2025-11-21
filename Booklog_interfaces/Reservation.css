@@ -1,7 +1,11 @@
 body {
   margin: 0;
   font-family: "Century Gothic", sans-serif;
-  background: url("../images/Library.png") no-repeat center center/cover;
+  background: url("../images/red.jpg") no-repeat center center/cover;
+  background-position: center center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
   color: #272323;
 }
 
