@@ -121,6 +121,46 @@ if ($method === 'GET') {
     } elseif ($action === 'createReservation') {
         $bookId = $data['bookId'] ?? 0;
         $dueDate = $data['dueDate'] ?? '';
+        
+        // --- NEW: CHECK 1: OVERDUE BOOKS ---
+        // Check if the user has ANY book that is 'Issued' and past its due date
+        $stmt_overdue = $conn->prepare("SELECT COUNT(*) FROM issued_books WHERE user_id = ? AND status = 'Issued' AND due_date < CURDATE()");
+        $stmt_overdue->bind_param("i", $userId);
+        $stmt_overdue->execute();
+        $stmt_overdue->bind_result($overdueCount);
+        $stmt_overdue->fetch();
+        $stmt_overdue->close();
+
+        if ($overdueCount > 0) {
+            echo json_encode(['success' => false, 'message' => 'You have overdue books! You cannot borrow any more books until they are returned.']);
+            exit();
+        }
+
+        // --- NEW: CHECK 2: BORROWING LIMIT (Max 5) ---
+        // Count currently borrowed books
+        $stmt_issued = $conn->prepare("SELECT COUNT(*) FROM issued_books WHERE user_id = ? AND status = 'Issued'");
+        $stmt_issued->bind_param("i", $userId);
+        $stmt_issued->execute();
+        $stmt_issued->bind_result($issuedCount);
+        $stmt_issued->fetch();
+        $stmt_issued->close();
+
+        // Count active reservations (books waiting to be picked up)
+        $stmt_reserved = $conn->prepare("SELECT COUNT(*) FROM reservations WHERE user_id = ? AND status = 'Pending Pickup'");
+        $stmt_reserved->bind_param("i", $userId);
+        $stmt_reserved->execute();
+        $stmt_reserved->bind_result($reservedCount);
+        $stmt_reserved->fetch();
+        $stmt_reserved->close();
+
+        // If Total (Borrowed + Reserved) is 5 or more, block them
+        if (($issuedCount + $reservedCount) >= 5) {
+            echo json_encode(['success' => false, 'message' => 'You have reached the maximum limit of 5 books (Borrowed + Reserved).']);
+            exit();
+        }
+        
+        // --- END NEW CHECKS ---
+
         $transactionNumber = 'TXN-' . strtoupper(uniqid());
         
         $conn->begin_transaction();
