@@ -85,9 +85,27 @@ if ($method === 'GET') {
         $data = [];
         while($row = $result->fetch_assoc()) { $data[] = $row; }
         echo json_encode($data);
+
+    } elseif ($action === 'getHistory') {
+        $stmt = $conn->prepare("
+            SELECT 
+                rb.return_date, rb.transaction_number,
+                b.title, b.author, b.cover
+            FROM returned_books rb
+            JOIN books b ON rb.book_id = b.id
+            WHERE rb.user_id = ? AND rb.is_deleted_by_user = 0
+            ORDER BY rb.return_date DESC
+        ");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $data = [];
+        while($row = $result->fetch_assoc()) { $data[] = $row; }
+        echo json_encode($data);
     
     } elseif ($action === 'getUserData') {
-        $stmt = $conn->prepare("SELECT firstname, surname, course, year, email FROM users WHERE id = ?");
+        // Fetch password so we can display it in the edit form
+        $stmt = $conn->prepare("SELECT firstname, surname, course, year, email, password FROM users WHERE id = ?");
         $stmt->bind_param("i", $userId);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -117,13 +135,48 @@ if ($method === 'GET') {
         $stmt->bind_param("ii", $userId, $bookId);
         $stmt->execute();
         echo json_encode(['success' => true]);
+    
+    } elseif ($action === 'clearHistory') {
+        $stmt = $conn->prepare("UPDATE returned_books SET is_deleted_by_user = 1 WHERE user_id = ?");
+        $stmt->bind_param("i", $userId);
+        if ($stmt->execute()) {
+            $stmt->close();
+            $cleanupSql = "DELETE FROM returned_books WHERE is_deleted_by_librarian = 1 AND is_deleted_by_user = 1";
+            $conn->query($cleanupSql);
+
+            echo json_encode(['success' => true, 'message' => 'History cleared.']);
+        } else {
+            $stmt->close();
+            echo json_encode(['success' => false, 'message' => 'Could not clear history.']);
+        }
 
     } elseif ($action === 'createReservation') {
         $bookId = $data['bookId'] ?? 0;
         $dueDate = $data['dueDate'] ?? '';
+
+        // --- CHECK: PREVENT DUPLICATE BOOK RESERVATIONS ---
+        $stmt_duplicate = $conn->prepare("
+            SELECT COUNT(*) FROM reservations WHERE user_id = ? AND book_id = ? AND (status = 'Pending Pickup' OR status = 'Active')
+            UNION ALL
+            SELECT COUNT(*) FROM issued_books WHERE user_id = ? AND book_id = ? AND status = 'Issued'
+        ");
+        $stmt_duplicate->bind_param("iiii", $userId, $bookId, $userId, $bookId);
+        $stmt_duplicate->execute();
+        $result_dup = $stmt_duplicate->get_result();
+        $is_duplicate = false;
+        while ($row = $result_dup->fetch_row()) {
+            if ($row[0] > 0) {
+                $is_duplicate = true;
+            }
+        }
+        $stmt_duplicate->close();
+
+        if ($is_duplicate) {
+            echo json_encode(['success' => false, 'message' => 'You already have a copy of this book reserved or borrowed.']);
+            exit();
+        }
         
-        // --- NEW: CHECK 1: OVERDUE BOOKS ---
-        // Check if the user has ANY book that is 'Issued' and past its due date
+        // --- CHECK: OVERDUE BOOKS ---
         $stmt_overdue = $conn->prepare("SELECT COUNT(*) FROM issued_books WHERE user_id = ? AND status = 'Issued' AND due_date < CURDATE()");
         $stmt_overdue->bind_param("i", $userId);
         $stmt_overdue->execute();
@@ -136,8 +189,7 @@ if ($method === 'GET') {
             exit();
         }
 
-        // --- NEW: CHECK 2: BORROWING LIMIT (Max 5) ---
-        // Count currently borrowed books
+        // --- CHECK: BORROWING LIMIT (Max 5) ---
         $stmt_issued = $conn->prepare("SELECT COUNT(*) FROM issued_books WHERE user_id = ? AND status = 'Issued'");
         $stmt_issued->bind_param("i", $userId);
         $stmt_issued->execute();
@@ -145,7 +197,6 @@ if ($method === 'GET') {
         $stmt_issued->fetch();
         $stmt_issued->close();
 
-        // Count active reservations (books waiting to be picked up)
         $stmt_reserved = $conn->prepare("SELECT COUNT(*) FROM reservations WHERE user_id = ? AND status = 'Pending Pickup'");
         $stmt_reserved->bind_param("i", $userId);
         $stmt_reserved->execute();
@@ -153,13 +204,10 @@ if ($method === 'GET') {
         $stmt_reserved->fetch();
         $stmt_reserved->close();
 
-        // If Total (Borrowed + Reserved) is 5 or more, block them
         if (($issuedCount + $reservedCount) >= 5) {
             echo json_encode(['success' => false, 'message' => 'You have reached the maximum limit of 5 books (Borrowed + Reserved).']);
             exit();
         }
-        
-        // --- END NEW CHECKS ---
 
         $transactionNumber = 'TXN-' . strtoupper(uniqid());
         
@@ -229,18 +277,24 @@ if ($method === 'GET') {
         $stmt->close();
     
     } elseif ($action === 'updateUser') {
+        // --- THIS IS THE FIX ---
         $updateData = $data['data'];
         $nameParts = explode(' ', $updateData['name'], 2);
         $firstname = $nameParts[0];
         $surname = $nameParts[1] ?? '';
+
         if (!empty($updateData['password'])) {
-            $hashedPassword = password_hash($updateData['password'], PASSWORD_DEFAULT);
+            // DEMO MODE: SAVE PLAIN TEXT PASSWORD (NO HASH)
+            $plainPassword = $updateData['password'];
             $stmt = $conn->prepare("UPDATE users SET firstname = ?, surname = ?, course = ?, year = ?, email = ?, password = ? WHERE id = ?");
-            $stmt->bind_param("ssssssi", $firstname, $surname, $updateData['course'], $updateData['yearLevel'], $updateData['email'], $hashedPassword, $userId);
+            $stmt->bind_param("ssssssi", $firstname, $surname, $updateData['course'], $updateData['yearLevel'], $updateData['email'], $plainPassword, $userId);
         } else {
+            // If password is empty, don't update it (keep existing)
             $stmt = $conn->prepare("UPDATE users SET firstname = ?, surname = ?, course = ?, year = ?, email = ? WHERE id = ?");
             $stmt->bind_param("sssssi", $firstname, $surname, $updateData['course'], $updateData['yearLevel'], $updateData['email'], $userId);
         }
+        // ------------------------
+
         if ($stmt->execute()) {
             echo json_encode(['success' => true]);
         } else {

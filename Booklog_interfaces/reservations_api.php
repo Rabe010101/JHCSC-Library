@@ -45,16 +45,21 @@ switch ($action) {
         $search = $_GET['search'] ?? '';
         $status = $_GET['status'] ?? '';
 
-        // This SQL query is correct and includes otp_expires
-        $sql = "SELECT 
-                    r.id, r.user_id, r.transaction_number, r.reservation_date, r.due_date, r.status, r.otp_expires,
-                    CONCAT(u.firstname, ' ', u.surname) AS name, u.email, b.title AS book_title
-                FROM reservations r
-                JOIN users u ON r.user_id = u.id
-                JOIN books b ON r.book_id = b.id
-                WHERE r.status != 'Claimed'";
+        // --- PAGINATION PARAMETERS ---
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20; // Default 20 per page
+        $offset = ($page - 1) * $limit;
 
-        $conditions = []; $params = []; $types = '';
+        // Base SQL (Shared for Count and Data)
+        // We use "WHERE 1=1" logic inside the conditions array for cleaner appending
+        $baseSQL = " FROM reservations r
+                     JOIN users u ON r.user_id = u.id
+                     JOIN books b ON r.book_id = b.id
+                     WHERE r.status != 'Claimed'";
+
+        $conditions = []; 
+        $params = []; 
+        $types = '';
 
         if (!empty($search)) {
             $conditions[] = "(u.firstname LIKE ? OR u.surname LIKE ? OR u.email LIKE ? OR b.title LIKE ?)";
@@ -69,11 +74,34 @@ switch ($action) {
             $types .= 's';
         }
         
+        // Append extra conditions to Base SQL
         if (!empty($conditions)) {
-            $sql .= " AND " . implode(" AND ", $conditions);
+            $baseSQL .= " AND " . implode(" AND ", $conditions);
         }
-        $sql .= " ORDER BY r.reservation_date DESC";
+
+        // --- QUERY 1: Get Total Count ---
+        $countSql = "SELECT COUNT(*) as total" . $baseSQL;
+        $stmtCount = $conn->prepare($countSql);
+        if (!empty($params)) {
+            $stmtCount->bind_param($types, ...$params);
+        }
+        $stmtCount->execute();
+        $totalResult = $stmtCount->get_result()->fetch_assoc();
+        $totalRecords = $totalResult['total'];
+        $stmtCount->close();
+
+        // --- QUERY 2: Get Data (With Limit/Offset) ---
+        $sql = "SELECT 
+                    r.id, r.user_id, r.transaction_number, r.reservation_date, r.due_date, r.status, r.otp_expires,
+                    CONCAT(u.firstname, ' ', u.surname) AS name, u.email, b.title AS book_title" 
+                . $baseSQL 
+                . " ORDER BY r.reservation_date DESC LIMIT ? OFFSET ?";
         
+        // Add Pagination Params
+        $params[] = $limit;
+        $params[] = $offset;
+        $types .= "ii";
+
         $stmt = $conn->prepare($sql);
         if (!empty($params)) {
             $stmt->bind_param($types, ...$params);
@@ -84,7 +112,18 @@ switch ($action) {
         while($row = $result->fetch_assoc()) {
             $reservations[] = $row;
         }
-        echo json_encode($reservations);
+
+        // Return structured JSON
+        echo json_encode([
+            'data' => $reservations,
+            'pagination' => [
+                'totalRecords' => $totalRecords,
+                'totalPages' => ceil($totalRecords / $limit),
+                'currentPage' => $page,
+                'limit' => $limit
+            ]
+        ]);
+        
         $stmt->close();
         break;
 

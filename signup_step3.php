@@ -1,90 +1,88 @@
 <?php
+// signup_step3.php
 session_start();
 
-// 1. Protect this page
-if (!isset($_SESSION['user_id'])) {
-    // Not logged in, send them to the home page
-    header('Location: Home.html');
+// Security: Check if we have the password from Step 2 (Use password as the "Flag" that Step 2 is done)
+if (!isset($_SESSION['signup_password'])) {
+    header('Location: signup_step2.php');
     exit();
 }
 
-// 2. Database connection details
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "jhcsc_library";
-
-$conn = new mysqli($servername, $username, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-$user_id = $_SESSION['user_id'];
-$user_name = $_SESSION['user_name'];
+$firstname = $_SESSION['signup_firstname'];
 $message = "";
 
-// 3. Check if the form was submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $course = $_POST['course'];
     $year = $_POST['year'];
+    
+    // Retrieve ALL other data from Session
+    $email = $_SESSION['signup_email'];
+    $surname = $_SESSION['signup_surname'];
+    $password = $_SESSION['signup_password']; // Plain text for demo
 
-    // 4. Update the user's record in the database
-    $stmt = $conn->prepare("UPDATE users SET course = ?, year = ? WHERE id = ?");
-    $stmt->bind_param("ssi", $course, $year, $user_id);
+    // Connect to DB
+    $conn = new mysqli("localhost", "root", "", "jhcsc_library");
+    if ($conn->connect_error) { die("Connection failed: " . $conn->connect_error); }
+
+    // --- FINAL INSERTION ---
+    // We are inserting a COMPLETED account now.
+    $user_type = 'student';
+    $is_verified = 1;
+
+    $stmt = $conn->prepare("INSERT INTO users (firstname, surname, email, password, user_type, course, year, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssssssi", $firstname, $surname, $email, $password, $user_type, $course, $year, $is_verified);
 
     if ($stmt->execute()) {
-        // Success! Redirect to the main app
+        // Success! Log them in.
+        $_SESSION['user_id'] = $stmt->insert_id;
+        $_SESSION['user_name'] = $firstname . ' ' . $surname;
+        $_SESSION['user_type'] = $user_type;
+
+        // Cleanup Session
+        unset($_SESSION['signup_email']);
+        unset($_SESSION['signup_firstname']);
+        unset($_SESSION['signup_surname']);
+        unset($_SESSION['signup_password']);
+        unset($_SESSION['is_email_verified']);
+        unset($_SESSION['signup_google_firstname']);
+        unset($_SESSION['signup_google_surname']);
+
+        // Redirect to App
         header('Location: final/index.php');
         exit();
     } else {
-        $message = "Error: Could not save your information. Please try again.";
+        $message = "Error: Could not save account. Please try again.";
     }
     $stmt->close();
+    $conn->close();
 }
-$conn->close();
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Complete Your Profile</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
     <style>
       body {
         background-image: url('images/red.jpg');
-        
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
-        background-attachment: fixed; /* Keeps the background still */
+        background-attachment: fixed; 
       }
-      /* This adds a slight dark overlay to make the white box pop */
       body::before {
-        content: "";
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.3); /* Adjust 0.3 to make it darker or lighter */
-        z-index: -1;
+        content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-color: rgba(0, 0, 0, 0.3); z-index: -1;
       }
-      /* We need to adjust the card to sit on top */
-      .bg-white {
-        position: relative;
-        z-index: 1;
-      }
+      .bg-white { position: relative; z-index: 1; }
     </style>
-
-</head>
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
 
     <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 class="text-2xl font-bold mb-4 text-center" style="color: #004d14;">Welcome, <?php echo htmlspecialchars($user_name); ?>!</h1>
+        <h1 class="text-2xl font-bold mb-4 text-center" style="color: #004d14;">Welcome, <?php echo htmlspecialchars($firstname); ?>!</h1>
         <p class="text-gray-600 mb-6 text-center">Please complete your profile to continue.</p>
 
         <?php if ($message): ?>
@@ -116,8 +114,8 @@ $conn->close();
                 </select>
             </div>
 
-            <button type="submit" class="w-full text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
-                Save and Continue
+            <button type="submit" class="w-full text-white bg-green-700 hover:bg-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                Save and Create Account
             </button>
         </form>
     </div>

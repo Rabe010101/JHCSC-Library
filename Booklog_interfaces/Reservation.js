@@ -4,6 +4,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const searchBox = document.getElementById("searchBox");
     const statusFilter = document.getElementById("statusFilter");
 
+    // --- Pagination Selectors ---
+    const prevBtn = document.getElementById("prev-btn");
+    const nextBtn = document.getElementById("next-btn");
+    const pageInfo = document.getElementById("page-info");
+
     // --- OTP Modal Selectors ---
     const otpModal = document.getElementById("otpModal");
     const closeOtpModalBtn = document.getElementById("closeOtpModal");
@@ -15,39 +20,47 @@ document.addEventListener("DOMContentLoaded", () => {
     const otpInputs = Array.from(otpContainer.querySelectorAll('.otp-input'));
     const otpCodeCombined = document.getElementById("otpCodeCombined");
     const otpUserEmail = document.getElementById("otpUserEmail");
-    
     const otpBookTitle = document.getElementById("otpBookTitle");
-    
-    // Selector for Resend Link
     const resendOtpLink = document.getElementById("resendOtpLink");
 
-    // --- Function to fetch reservations ---
-    function fetchReservations() {
+    // --- Global Pagination Variables ---
+    let currentPage = 1;
+    const itemsPerPage = 20;
+
+    // --- Main Function to Fetch Reservations (With Pagination) ---
+    function fetchReservations(page = 1) {
         const searchTerm = searchBox.value;
         const status = statusFilter.value;
         
         const cacheBust = new Date().getTime();
-        const apiUrl = `reservations_api.php?action=getReservations&search=${encodeURIComponent(searchTerm)}&status=${encodeURIComponent(status)}&_=${cacheBust}`;
+        // Updated API URL with page and limit
+        const apiUrl = `reservations_api.php?action=getReservations&search=${encodeURIComponent(searchTerm)}&status=${encodeURIComponent(status)}&page=${page}&limit=${itemsPerPage}&_=${cacheBust}`;
 
         fetch(apiUrl, { credentials: 'same-origin' })
             .then(response => response.json())
-            .then(data => {
+            .then(response => {
+                // Handle new API response structure
+                const data = response.data || []; 
+                const pagination = response.pagination;
+
                 tableBody.innerHTML = "";
-                if (data.error) {
-                    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;">${data.error}</td></tr>`;
+                
+                if (response.error) {
+                    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;">${response.error}</td></tr>`;
                     return;
                 }
-                if (data.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center;">No reservations found.</td></tr>';
+                if (!data || data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">No reservations found.</td></tr>';
+                    if (pagination) updatePaginationControls(0, 0, 1);
                     return;
                 }
+
                 data.forEach(res => {
                     const row = tableBody.insertRow();
                     let actionButtonHTML = '';
 
-                    // (Unchanged) Render logic for buttons
+                    // Logic to determine which buttons to show
                     if (res.status === 'Pending Pickup') {
-                        // This logic is correct
                         const otpExpires = res.otp_expires ? new Date(res.otp_expires.replace(' ', 'T') + 'Z') : null;
                         const now = new Date();
                         
@@ -74,6 +87,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         <td><span class="status ${res.status.replace(' ', '-').toLowerCase()}">${res.status}</span></td>
                         <td class="action-cell">${actionButtonHTML}</td> `;
                 });
+
+                // Update Pagination Buttons
+                if (pagination) {
+                    updatePaginationControls(pagination.totalRecords, pagination.totalPages, pagination.currentPage);
+                }
             })
             .catch(error => {
                 console.error("Failed to fetch reservations:", error);
@@ -81,12 +99,66 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     }
 
+    // --- Pagination UI Logic ---
+    function updatePaginationControls(totalRecords, totalPages, current) {
+        currentPage = current;
+        if (pageInfo) pageInfo.textContent = `Page ${current} of ${totalPages || 1} (Total: ${totalRecords})`;
+
+        if (prevBtn && nextBtn) {
+            // Previous Button
+            if (current <= 1) {
+                prevBtn.disabled = true;
+                prevBtn.style.background = '#ccc';
+                prevBtn.style.cursor = 'not-allowed';
+            } else {
+                prevBtn.disabled = false;
+                prevBtn.style.background = 'rgb(0, 153, 38)'; // Green to match theme
+                prevBtn.style.cursor = 'pointer';
+            }
+            // Next Button
+            if (current >= totalPages || totalPages === 0) {
+                nextBtn.disabled = true;
+                nextBtn.style.background = '#ccc';
+                nextBtn.style.cursor = 'not-allowed';
+            } else {
+                nextBtn.disabled = false;
+                nextBtn.style.background = 'rgb(0, 153, 38)';
+                nextBtn.style.cursor = 'pointer';
+            }
+        }
+    }
+
+    // --- Event Listeners for Filters & Pagination ---
+    
+    function updateFilters() {
+        currentPage = 1; // Always reset to page 1 on new search
+        fetchReservations(1);
+    }
+    
+    if (searchBox) searchBox.addEventListener('input', updateFilters);
+    if (statusFilter) statusFilter.addEventListener('change', updateFilters);
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) fetchReservations(currentPage - 1);
+        });
+    }
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (!nextBtn.disabled) fetchReservations(currentPage + 1);
+        });
+    }
+
+    // ============================================================
+    //  EXISTING EVENT DELEGATION & MODAL LOGIC (UNCHANGED)
+    // ============================================================
+
     // --- Event Delegation for table buttons ---
     tableBody.addEventListener('click', function(event) {
         const target = event.target;
         const reservationId = target.dataset.id;
 
-        // --- 'Book Claimed' button (sends OTP) ---
+        // 'Book Claimed' button (sends OTP)
         if (target.classList.contains('btn-claim')) {
             if (confirm("This will send an OTP to the user's email to confirm pickup. Proceed?")) {
                 target.disabled = true;
@@ -102,8 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 .then(result => {
                     alert(result.message);
                     if (result.success) {
-                        // Re-fetch to update button state
-                        fetchReservations();
+                        fetchReservations(currentPage); // Refresh current page
                     } else {
                         target.disabled = false;
                         target.textContent = "Book Claimed";
@@ -112,18 +183,15 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         
-        // --- 'Enter Code' button (opens modal) ---
+        // 'Enter Code' button (opens modal)
         else if (target.classList.contains('btn-enter-code')) {
-            // Get data from the table row
             const tableRow = target.closest('tr');
             const userEmail = tableRow.cells[2].textContent;
             const bookTitle = tableRow.cells[4].textContent; 
             
-            // Set the text in the modal
             if(otpUserEmail) otpUserEmail.textContent = userEmail;
             if(otpBookTitle) otpBookTitle.textContent = bookTitle; 
 
-            // Show the modal
             otpReservationIdInput.value = reservationId;
             otpInputs.forEach(input => input.value = '');
             otpCodeCombined.value = '';
@@ -131,7 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
             otpInputs[0].focus();
         }
 
-        // --- 'Admin Cancel' button (unchanged) ---
+        // 'Admin Cancel' button
         else if (target.classList.contains('btn-admin-cancel')) {
             if (confirm("Are you sure you want to cancel this user's reservation? The book will be returned to inventory.")) {
                 fetch('reservations_api.php', {
@@ -144,13 +212,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 .then(result => {
                     alert(result.message);
                     if (result.success) {
-                        fetchReservations();
+                        fetchReservations(currentPage);
                     }
                 });
             }
         }
 
-        // --- 'Delete' button (unchanged) ---
+        // 'Delete' button
         else if (target.classList.contains('btn-delete')) {
             if (confirm("Are you sure you want to permanently delete this cancelled reservation?")) {
                 fetch('reservations_api.php', {
@@ -163,21 +231,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 .then(result => {
                     alert(result.message);
                     if (result.success) {
-                        fetchReservations();
+                        fetchReservations(currentPage);
                     }
                 });
             }
         }
     });
 
-    // --- Event Listeners for OTP Modal ---
-    
-    // Close button
+    // --- Modal Logic ---
     closeOtpModalBtn.addEventListener('click', () => {
         otpModal.style.display = 'none';
     });
 
-    // Clicking outside the modal
     window.addEventListener('click', (event) => {
         if (event.target == otpModal) {
             otpModal.style.display = 'none';
@@ -215,51 +280,46 @@ document.addEventListener("DOMContentLoaded", () => {
             alert(result.message);
             if (result.success) {
                 otpModal.style.display = 'none';
-                fetchReservations();
+                fetchReservations(currentPage);
             }
             submitBtn.disabled = false;
             submitBtn.textContent = "Verify and Issue Book";
         });
     });
 
-    // --- MODIFIED: Click listener for Resend Link ---
-    resendOtpLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        
-        const reservationId = otpReservationIdInput.value;
-        if (!reservationId) {
-            alert("An error occurred. Please close this modal and try again.");
-            return;
-        }
-
-        e.target.textContent = "Sending..."; // Only change the link's text
-        e.target.style.pointerEvents = 'none'; // Disable link
-
-        fetch('reservations_api.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'sendClaimOTP', reservationId: reservationId }),
-            credentials: 'same-origin'
-        })
-        .then(response => response.json())
-        .then(result => {
-            alert(result.message); // "OTP sent" or "Error"
-            
-            // Re-enable the link
-            e.target.textContent = "Resend code"; // Change text back
-            e.target.style.pointerEvents = 'auto';
-            
-            if (result.success) {
-                // Focus the first input box
-                otpInputs[0].focus();
+    // Resend OTP Link
+    if (resendOtpLink) {
+        resendOtpLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const reservationId = otpReservationIdInput.value;
+            if (!reservationId) {
+                alert("An error occurred. Please close this modal and try again.");
+                return;
             }
+
+            e.target.textContent = "Sending...";
+            e.target.style.pointerEvents = 'none';
+
+            fetch('reservations_api.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'sendClaimOTP', reservationId: reservationId }),
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(result => {
+                alert(result.message);
+                e.target.textContent = "Resend code";
+                e.target.style.pointerEvents = 'auto';
+                if (result.success) {
+                    otpInputs[0].focus();
+                }
+            });
         });
-    });
+    }
 
-
-    // --- Logic for the 5 OTP boxes ---
+    // Logic for the 5 OTP boxes
     if (otpContainer) {
-        // (This code is unchanged)
         function combineInputs() {
             let code = '';
             otpInputs.forEach(input => {
@@ -311,9 +371,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- Initial Load ---
-    searchBox.addEventListener('input', fetchReservations);
-    statusFilter.addEventListener('change', fetchReservations);
-
-    fetchReservations();
+    // Initial Load
+    fetchReservations(1);
 });

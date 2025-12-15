@@ -118,7 +118,7 @@
     <input type="text" id="searchBox" placeholder="Search here...">
   </div>
 
-  <section class="table-container">
+  <section class="table-container" style="position: relative; padding-bottom: 60px;">
     <table>
       <thead>
         <tr>
@@ -135,6 +135,12 @@
       <tbody id="issuedBooksTableBody">
         </tbody>
     </table>
+
+    <div id="pagination-controls" style="position: absolute; bottom: 15px; right: 20px; display: flex; align-items: center; gap: 10px;">
+        <span id="page-info" style="font-size: 14px; color: #555;"></span>
+        <button id="prev-btn" class="btn-action" style="background: #ccc; cursor: not-allowed;" disabled>Previous</button>
+        <button id="next-btn" class="btn-action">Next</button>
+    </div>
   </section>
   <p class="note">Note: Click the "Returned" button if the client returned the book(s)</p>
 

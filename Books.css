@@ -6,9 +6,16 @@
   font-family: "Century Gothic", sans-serif;
 }
 
+/* FIX 1: STOP LAYOUT SHIFT */
+html {
+    overflow-y: scroll; /* Forces scrollbar to always show, stopping left/right jumps */
+}
+
 body {
-  background: url("images/red.jpg") no-repeat center center/cover;
+  /* FIX 2: LOCK BACKGROUND */
+  background: url("images/red.jpg") no-repeat center center;
   background-size: cover;
+  background-attachment: fixed; /* CRITICAL: Prevents background from resizing/zooming when page length changes */
   min-height: 100vh;
   color: #333;
 }
@@ -129,6 +136,11 @@ nav ul li a:hover {
   border-radius: 2px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   overflow-x: auto;
+  
+  /* FIX 3: STOP THE "RISE" */
+  min-height: 80vh; /* Forces the white box to stay tall even if empty */
+  padding-bottom: 60px; /* Space for pagination */
+  position: relative;
 }
 
 table {
@@ -249,14 +261,35 @@ tbody tr:hover {
 #deleteModal .modal-content div {
   display: flex;
   justify-content: space-between;
-  gap: 10px; /* small gap between buttons */
+  gap: 10px;
   margin-top: 15px;
 }
 
 #deleteModal .modal-content button {
-  flex: 1; /* equal width */
+  flex: 1;
   padding: 8px 0;
   font-size: 14px;
   border-radius: 2px;
   cursor: pointer;
+}
+
+/* Table Fixed Layout */
+table#booksTable {
+    table-layout: fixed;
+    width: 100%;
+}
+
+table#booksTable th:nth-child(1) { width: 80px; }
+table#booksTable th:nth-child(2) { width: 25%; }
+table#booksTable th:nth-child(3) { width: 15%; }
+table#booksTable th:nth-child(4) { width: 15%; }
+table#booksTable th:nth-child(5) { width: 120px; }
+table#booksTable th:nth-child(6) { width: 70px; }
+table#booksTable th:nth-child(7) { width: 70px; }
+table#booksTable th:nth-child(8) { width: 140px; }
+
+table#booksTable td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

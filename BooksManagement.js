@@ -13,23 +13,47 @@ document.addEventListener('DOMContentLoaded', function () {
     const addCategoryModal = document.getElementById('addCategoryModal');
     const addCategoryForm = document.getElementById('addCategoryForm');
     const closeCategoryModalBtn = document.getElementById('closeCategoryModal');
-    // --- REMOVED: const addCategoryBtn is no longer needed ---
+    
+    // --- NEW: Pagination Elements ---
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const pageInfo = document.getElementById('page-info');
+
+    // --- Global Variables ---
+    let currentPage = 1;
+    const itemsPerPage = 20; // Number of books per page
 
     // --- Initial Data Fetch ---
     fetchBooks();
     populateCategories();
 
-    // --- Main Function to Fetch and Display Books ---
-    function fetchBooks(searchTerm = '', category = '', year = '') {
-        const apiUrl = `books_api.php?action=getAllBooks&search=${encodeURIComponent(searchTerm)}&category=${encodeURIComponent(category)}&year=${encodeURIComponent(year)}`;
+    // --- Main Function to Fetch and Display Books (Updated for Pagination) ---
+    function fetchBooks(searchTerm = '', category = '', year = '', page = 1) {
+        // Construct API URL with new 'page' and 'limit' parameters
+        const apiUrl = `books_api.php?action=getAllBooks&search=${encodeURIComponent(searchTerm)}&category=${encodeURIComponent(category)}&year=${encodeURIComponent(year)}&page=${page}&limit=${itemsPerPage}`;
+        
         fetch(apiUrl)
             .then(response => response.json())
-            .then(books => {
+            .then(response => {
+                // The API now returns { data: [...], pagination: {...} }
+                // We handle both cases (old API vs new API) just in case
+                const books = response.data || response; 
+                const pagination = response.pagination;
+
                 booksTableBody.innerHTML = '';
+                
                 if (books.error) {
                     console.error(books.error);
                     return;
                 }
+
+                if (!books || books.length === 0) {
+                    booksTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">No books found.</td></tr>';
+                    // Reset pagination if no results
+                    if(pagination) updatePaginationControls(0, 0, 1);
+                    return;
+                }
+
                 books.forEach(book => {
                     const row = booksTableBody.insertRow();
                     row.dataset.categoryId = book.category_id;
@@ -47,16 +71,86 @@ document.addEventListener('DOMContentLoaded', function () {
                         </td>
                     `;
                 });
+
+                // Update the buttons using the data from the server
+                if (pagination) {
+                    updatePaginationControls(pagination.totalRecords, pagination.totalPages, pagination.currentPage);
+                }
             })
             .catch(error => console.error('Error fetching books:', error));
     }
 
-    // --- MODIFIED: This function now adds the "Add New Category" option at the bottom ---
+    // --- NEW: Pagination UI Logic ---
+    function updatePaginationControls(totalRecords, totalPages, current) {
+        currentPage = current; // Sync global state
+        
+        // Update text: "Page 1 of 5 (Total: 100)"
+        if(pageInfo) {
+            pageInfo.textContent = `Page ${current} of ${totalPages || 1} (Total: ${totalRecords})`;
+        }
+
+        if(prevBtn && nextBtn) {
+            // Disable "Previous" if on page 1
+            if (current <= 1) {
+                prevBtn.disabled = true;
+                prevBtn.style.background = '#ccc';
+                prevBtn.style.cursor = 'not-allowed';
+            } else {
+                prevBtn.disabled = false;
+                prevBtn.style.background = '#2196f3';
+                prevBtn.style.cursor = 'pointer';
+            }
+
+            // Disable "Next" if on last page
+            if (current >= totalPages || totalPages === 0) {
+                nextBtn.disabled = true;
+                nextBtn.style.background = '#ccc';
+                nextBtn.style.cursor = 'not-allowed';
+            } else {
+                nextBtn.disabled = false;
+                nextBtn.style.background = '#2196f3';
+                nextBtn.style.cursor = 'pointer';
+            }
+        }
+    }
+
+    // --- NEW: Pagination Event Listeners ---
+    if(prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                fetchBooks(searchBar.value, categoryFilter.value, yearFilter.value, currentPage - 1);
+            }
+        });
+    }
+
+    if(nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            // We rely on the button state (disabled/enabled) to prevent over-clicking
+            if (!nextBtn.disabled) {
+                fetchBooks(searchBar.value, categoryFilter.value, yearFilter.value, currentPage + 1);
+            }
+        });
+    }
+
+    // --- MODIFIED: Filter logic ---
+    function updateFilters() {
+        currentPage = 1; // Always reset to Page 1 when searching/filtering
+        fetchBooks(searchBar.value, categoryFilter.value, yearFilter.value, 1);
+    }
+    searchBar.addEventListener('input', updateFilters);
+    categoryFilter.addEventListener('change', updateFilters);
+    yearFilter.addEventListener('input', updateFilters);
+
+
+    // ---------------------------------------------------------
+    //  BELOW IS YOUR ORIGINAL CODE (UNCHANGED)
+    // ---------------------------------------------------------
+
+    // Function to populate categories
     function populateCategories() {
         return fetch('books_api.php?action=getAllCategories')
             .then(response => response.json())
             .then(categories => {
-                // Clear dropdowns
                 categoryFilter.innerHTML = '<option value="">All Categories</option>';
                 categorySelectInput.innerHTML = '<option value="">Select a Category</option>';
 
@@ -65,118 +159,100 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
                 categories.forEach(cat => {
-                    // Populate filter dropdown
                     const filterOption = document.createElement('option');
                     filterOption.value = cat.id;
                     filterOption.textContent = cat.name;
                     categoryFilter.appendChild(filterOption);
 
-                    // Populate form dropdown
                     const formOption = document.createElement('option');
                     formOption.value = cat.id;
                     formOption.textContent = cat.name;
                     categorySelectInput.appendChild(formOption);
                 });
 
-                // --- ADDED: The separator and the special "Add New" option ---
                 const separator = document.createElement('option');
                 separator.disabled = true;
                 separator.textContent = '──────────────────────────────────';
                 categorySelectInput.appendChild(separator);
 
                 const addNewOption = document.createElement('option');
-                addNewOption.value = 'add_new_category'; // Special value to identify this action
+                addNewOption.value = 'add_new_category';
                 addNewOption.textContent = '＋ Add New Category...';
                 categorySelectInput.appendChild(addNewOption);
 
-                // --- ADDED: The "Remove a Category" option ---
                 const removeOption = document.createElement('option');
-                removeOption.value = 'remove_category'; // A special value for this action
+                removeOption.value = 'remove_category';
                 removeOption.textContent = '－ Remove a Category...';
                 categorySelectInput.appendChild(removeOption);
             })
             .catch(error => console.error('Error fetching categories:', error));
     }
 
-// --- Logic for Remove Category Modal ---
-const removeCategoryModal = document.getElementById('removeCategoryModal');
-const closeRemoveCategoryModalBtn = document.getElementById('closeRemoveCategoryModal');
-const removeCategoryForm = document.getElementById('removeCategoryForm');
-const categoryToDeleteSelect = document.getElementById('categoryToDelete');
+    // --- Logic for Remove Category Modal ---
+    const removeCategoryModal = document.getElementById('removeCategoryModal');
+    const closeRemoveCategoryModalBtn = document.getElementById('closeRemoveCategoryModal');
+    const removeCategoryForm = document.getElementById('removeCategoryForm');
+    const categoryToDeleteSelect = document.getElementById('categoryToDelete');
 
-// Function to populate the dropdown inside the "Remove Category" modal
-function populateCategoriesForDeletion() {
-    fetch('books_api.php?action=getAllCategories')
-        .then(response => response.json())
-        .then(categories => {
-            categoryToDeleteSelect.innerHTML = '<option value="">Select a category...</option>';
-            categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = cat.name;
-                categoryToDeleteSelect.appendChild(option);
+    function populateCategoriesForDeletion() {
+        fetch('books_api.php?action=getAllCategories')
+            .then(response => response.json())
+            .then(categories => {
+                categoryToDeleteSelect.innerHTML = '<option value="">Select a category...</option>';
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name;
+                    categoryToDeleteSelect.appendChild(option);
+                });
             });
-        });
-}
-
-// Modify the main dropdown's change listener to handle the new option
-categorySelectInput.addEventListener('change', function() {
-    if (this.value === 'add_new_category') {
-        addCategoryModal.style.display = 'block';
-        this.selectedIndex = 0;
-    } else if (this.value === 'remove_category') {
-        // When "Remove" is clicked, populate its modal and show it
-        populateCategoriesForDeletion();
-        removeCategoryModal.style.display = 'block';
-        this.selectedIndex = 0;
-    }
-});
-
-// Handle form submission for deleting a category
-removeCategoryForm.addEventListener('submit', function(event) {
-    event.preventDefault();
-    const categoryId = categoryToDeleteSelect.value;
-    if (!categoryId) {
-        alert('Please select a category to delete.');
-        return;
     }
 
-    if (confirm('Are you sure you want to permanently delete this category? This cannot be undone.')) {
-        fetch('books_api.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'deleteCategory', categoryId: categoryId })
-        })
-        .then(response => response.json())
-        .then(result => {
-            alert(result.message);
-            if (result.success) {
-                removeCategoryModal.style.display = 'none';
-                populateCategories(); // Refresh the main dropdowns
-            }
-        });
-    }
-});
+    categorySelectInput.addEventListener('change', function() {
+        if (this.value === 'add_new_category') {
+            addCategoryModal.style.display = 'block';
+            this.selectedIndex = 0;
+        } else if (this.value === 'remove_category') {
+            populateCategoriesForDeletion();
+            removeCategoryModal.style.display = 'block';
+            this.selectedIndex = 0;
+        }
+    });
 
-// Close the remove modal
-closeRemoveCategoryModalBtn.addEventListener('click', () => {
-    removeCategoryModal.style.display = 'none';
-});
+    removeCategoryForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const categoryId = categoryToDeleteSelect.value;
+        if (!categoryId) {
+            alert('Please select a category to delete.');
+            return;
+        }
 
-// Also add its closing logic to the window click listener
-window.addEventListener('click', (event) => {
-    if (event.target == bookModal) bookModal.style.display = 'none';
-    if (event.target == addCategoryModal) addCategoryModal.style.display = 'none';
-    if (event.target == removeCategoryModal) removeCategoryModal.style.display = 'none'; // Add this line
-});
+        if (confirm('Are you sure you want to permanently delete this category? This cannot be undone.')) {
+            fetch('books_api.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'deleteCategory', categoryId: categoryId })
+            })
+            .then(response => response.json())
+            .then(result => {
+                alert(result.message);
+                if (result.success) {
+                    removeCategoryModal.style.display = 'none';
+                    populateCategories(); 
+                }
+            });
+        }
+    });
 
-// --- Filter logic ---
-    function updateFilters() {
-        fetchBooks(searchBar.value, categoryFilter.value, yearFilter.value);
-    }
-    searchBar.addEventListener('input', updateFilters);
-    categoryFilter.addEventListener('change', updateFilters);
-    yearFilter.addEventListener('input', updateFilters);
+    closeRemoveCategoryModalBtn.addEventListener('click', () => {
+        removeCategoryModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target == bookModal) bookModal.style.display = 'none';
+        if (event.target == addCategoryModal) addCategoryModal.style.display = 'none';
+        if (event.target == removeCategoryModal) removeCategoryModal.style.display = 'none';
+    });
 
     // --- Form submission logic ---
     bookForm.addEventListener('submit', function (event) {
@@ -249,20 +325,6 @@ window.addEventListener('click', (event) => {
         bookModal.style.display = 'block';
     });
     closeModalBtn.addEventListener('click', () => bookModal.style.display = 'none');
-    window.addEventListener('click', (event) => {
-        if (event.target == bookModal) bookModal.style.display = 'none';
-        if (event.target == addCategoryModal) addCategoryModal.style.display = 'none';
-    });
-
-    // --- ADDED: New Event Listener for the dropdown itself ---
-    categorySelectInput.addEventListener('change', function() {
-        if (this.value === 'add_new_category') {
-            addCategoryModal.style.display = 'block';
-            this.selectedIndex = 0; // Reset dropdown to "Select a Category"
-        }
-    });
-
-    // --- REMOVED: The old click listener for the separate button is gone ---
 
     // --- "Add Category" Modal logic ---
     closeCategoryModalBtn.addEventListener('click', () => {

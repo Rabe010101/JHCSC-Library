@@ -39,25 +39,30 @@ if ($user && ($user['course'] == 'N/A' || $user['year'] == 'N/A' || $user['cours
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen" style="font-family: 'Century Gothic', sans-serif;">
-    <div class="container-wrapper rounded-lg">
-        <div id="app" class="h-full flex flex-col">
-            <header class="p-4 flex items-center justify-between">
-                <div class="Logo-title">
-                <img src="Logo.png" alt="logo" class="logo">
-                <span class="site-title">JHCSC</span>
-                </div>
-                <nav>
-                    <ul class="flex_space-x-4">
-                        <li><a href="#home" class="nav-link" data-page="home">Home</a></li>
-                        <li><a href="#reservations" class="nav-link" data-page="reservations">My Reservations</a></li>
-                        <li><a href="#account" class="nav-link" data-page="account">Account</a></li>
-                    </ul>
-                </nav>
-            </header>
+<body class="bg-gray-100 min-h-screen flex flex-col text-slate-800" style="font-family: 'Inter', sans-serif;">
+    <div class="w-full">
+        <div id="app" class="min-h-screen flex flex-col">
+            <header class="w-full">
+                <div class="container-wrapper flex items-center justify-between">
+                    
+                    <div class="Logo-title">
+                        <img src="Logo.png" alt="logo" class="logo">
+                        <span class="site-title">JHCSC</span>
+                    </div>
 
-            <main class="flex-grow p-4 overflow-auto">
-                <div id="home-page" class="page-content container active">
+                    <nav>
+                        <ul class="flex_space-x-4">
+                            <li><a href="#home" class="nav-link" data-page="home">Home</a></li>
+                            <li><a href="#reservations" class="nav-link" data-page="reservations">My Reservations</a></li>
+                            <li><a href="#account" class="nav-link" data-page="account">Account</a></li>
+                        </ul>
+                    </nav>
+
+                </div> 
+                </header>
+
+            <main class="flex-grow p-6">
+                <div id="home-page" class="page-content w-full max-w-[1920px] mx-auto px-6 active">
                     <div class="text-center mb-6">
                         <h2 class="text-2xl font-semibold mb-2" style="color: #004912;">Welcome to JHCSC</h2>
                         <p class="text-gray-600">Your gateway to book reservations and library access</p>
@@ -66,39 +71,30 @@ if ($user && ($user['course'] == 'N/A' || $user['year'] == 'N/A' || $user['cours
                         <button class="Reverse_Book" onclick="navigateTo('reserve')">Reserve a book</button>
                         <button class="Search_Lib" onclick="navigateTo('search-library')">Search Library</button>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-white p-4 rounded-lg shadow-md text-center border border-gray-200">
-                            <div class="flex flex-col items-center">
-                                <i class="fas fa-book-open text-gray-500 w-12 h-12 mb-2"></i>
-                                <div class="text-center">
-                                    <h3 class="text-sm font-medium text-green-700">My Books</h3>
-                                    <p class="text-xs text-gray-500">View my favorited books</p>
-                                </div>
-                                <button class="mt-2 px-4 py-1 text-xs bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 transition-colors" onclick="navigateTo('my-books')">Click</button>
-                            </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"> <div class="bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-lg border border-white/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col items-center justify-center min-h-[200px]" onclick="navigateTo('my-books')">
+                        <i class="fas fa-book-open text-gray-500 text-5xl mb-4 group-hover:text-green-600 transition-colors"></i> <h3 class="text-lg font-bold text-green-700">My Books</h3>
+                        <p class="text-sm text-gray-500 mt-1">View favorites</p>
                         </div>
 
-                        <div class="bg-white p-4 rounded-lg shadow-md text-center border border-gray-200">
-                            <div class="flex flex-col items-center">
-                                <i class="far fa-calendar-alt text-gray-500 w-12 h-12 mb-2"></i>
-                                <div class="text-center">
-                                    <h3 class="text-sm font-medium text-green-700">My Reservations</h3>
-                                    <p class="text-xs text-gray-500">Check the status of my reservations</p>
-                                </div>
-                                <button class="mt-2 px-4 py-1 text-xs bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 transition-colors" onclick="navigateTo('reservations')">Click</button>
-                            </div>
+                        <div class="bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-lg border border-white/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col items-center justify-center min-h-[200px]" onclick="navigateTo('reservations')">
+                        <i class="far fa-calendar-alt text-gray-500 text-5xl mb-4 group-hover:text-green-600 transition-colors"></i>
+                        <h3 class="text-lg font-bold text-green-700">Reservations</h3>
+                        <p class="text-sm text-gray-500 mt-1">Check status</p>
                         </div>
 
-                        <div class="bg-white p-4 rounded-lg shadow-md text-center border border-gray-200">
-                            <div class="flex flex-col items-center">
-                                <i class="fas fa-user-circle text-gray-500 w-12 h-12 mb-2"></i>
-                                <div class="text-center">
-                                    <h3 class="text-sm font-medium text-green-700">My Account</h3>
-                                    <p class="text-xs text-gray-500">Manage account preferences</p>
-                                </div>
-                                <button class="mt-2 px-4 py-1 text-xs bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 transition-colors" onclick="navigateTo('account')">Click</button>
-                            </div>
+                        <div class="bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-lg border border-white/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col items-center justify-center min-h-[200px]" onclick="navigateTo('history')">
+                        <i class="fas fa-history text-gray-500 text-5xl mb-4 group-hover:text-green-600 transition-colors"></i>
+                        <h3 class="text-lg font-bold text-green-700">History</h3>
+                        <p class="text-sm text-gray-500 mt-1">Returned books</p>
                         </div>
+
+                        <div class="bg-white/90 backdrop-blur-sm p-8 rounded-xl shadow-lg border border-white/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col items-center justify-center min-h-[200px]" onclick="navigateTo('account')">
+                        <i class="fas fa-user-circle text-gray-500 text-5xl mb-4 group-hover:text-green-600 transition-colors"></i>
+                        <h3 class="text-lg font-bold text-green-700">My Account</h3>
+                        <p class="text-sm text-gray-500 mt-1">Manage profile</p>
+                        </div>
+
                     </div>
                     <div class="bg-white/70 backdrop-blur-sm p-6 rounded-lg shadow-md mt-8">
                         <h2 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">My Borrowed Books</h2>
@@ -111,37 +107,82 @@ if ($user && ($user['course'] == 'N/A' || $user['year'] == 'N/A' || $user['cours
                         <a href="#" class="hover:underline">Help</a>
                     </div>
                 </div>
-                <div id="reserve-page" class="page-content container hidden">
+                
+                <div id="reserve-page" class="page-content w-full max-w-[1920px] mx-auto px-6 hidden">
                     <h2 class="text-xl font-bold mb-4">Reserve a Book</h2>
-                    <div id="category-filters" class="flex flex-wrap gap-2 mb-6">
+                    
+                    <div class="mb-6 max-w-xs">
+                        <div class="relative">
+                            <select id="reserve-category-filter" class="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-3 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-green-500 shadow-sm cursor-pointer">
+                                <option value="all">All Categories</option>
+                                </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </div>
                         </div>
+                    </div>
+
                     <div id="reserve-book-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         </div>
                 </div>
 
-                <div id="reservations-page" class="page-content container hidden">
+                <div id="reservations-page" class="page-content w-full max-w-[1920px] mx-auto px-6 hidden">
                     <h2 class="text-xl font-bold mb-4">My Reservations</h2>
                     <div id="reservations-list" class="space-y-4">
                     </div>
                 </div>
 
-                <div id="my-books-page" class="page-content container hidden">
+                <div id="my-books-page" class="page-content w-full max-w-[1920px] mx-auto px-6 hidden">
                     <h2 class="text-xl font-bold mb-4">My Books</h2>
                     <div id="my-books-list" class="space-y-4">
                     </div>
                 </div>
 
-                <div id="search-library-page" class="page-content container hidden">
-                    <h2 class="text-xl font-bold mb-4">Search Library</h2>
-                    <div class="flex items-center space-x-2 mb-4">
-                        <input id="search-input" type="text" placeholder="Search by title, author, or keyword..." class="flex-grow p-2 rounded-lg border border-gray-300">
-                        <button id="search-button" class="bg-green-500 text-white px-4 py-2 rounded-lg">Search</button>
+                <div id="history-page" class="page-content w-full max-w-[1920px] mx-auto px-6 hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">Transaction History</h2>
+                        <button onclick="clearAllHistory()" class="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg shadow-sm transition-all flex items-center">
+                            <i class="fas fa-trash-alt mr-2"></i> Clear All
+                        </button>
                     </div>
-                    <div id="search-results" class="grid grid-cols-2 gap-4">
-                    </div>
+                    
+                    <div id="history-list" class="space-y-4">
+                        </div>
                 </div>
 
-                <div id="reserve-book-page" class="page-content container hidden">
+                <div id="search-library-page" class="page-content w-full max-w-[1920px] mx-auto px-6 hidden">
+                    <h2 class="text-xl font-bold mb-4">Search Library</h2>
+                    
+                    <div class="flex flex-col md:flex-row gap-4 mb-6 justify-start">
+                        
+                        <div class="relative min-w-[200px]">
+                            <select id="search-category" class="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-3 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-green-500 shadow-sm cursor-pointer">
+                                <option value="">All Categories</option>
+                                </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 w-full max-w-2xl">
+                            <div class="relative flex-grow">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search text-gray-400"></i>
+                                </div>
+                                <input id="search-input" type="text" class="w-full pl-10 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 transition-shadow shadow-sm" placeholder="Search by title, author, or keyword...">
+                            </div>
+                            
+                            <button id="search-button" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm whitespace-nowrap">
+                                Search
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="search-results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        </div>
+                </div>
+
+                <div id="reserve-book-page" class="page-content w-full max-w-[1920px] mx-auto px-6 hidden">
                     <div class="flex flex-col items-center p-6 bg-white rounded-lg shadow-md">
                         <div class="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-4" id="reserve-book-content">
                         </div>
@@ -152,7 +193,7 @@ if ($user && ($user['course'] == 'N/A' || $user['year'] == 'N/A' || $user['cours
                     </div>
                 </div>
                 
-                <div id="account-page" class="page-content container hidden">
+                <div id="account-page" class="page-content w-full max-w-[1920px] mx-auto px-6 hidden">
                     <h2 class="text-xl font-bold mb-4">My Account</h2>
                     <div class="bg-white p-6 rounded-lg shadow-md max-w-lg mx-auto">
                         <div class="flex justify-between items-center mb-4">
@@ -240,7 +281,7 @@ if ($user && ($user['course'] == 'N/A' || $user['year'] == 'N/A' || $user['cours
                     </div>
                 </div>
 
-                <div id="borrowed-books-page" class="page-content container hidden">
+                <div id="borrowed-books-page" class="page-content w-full max-w-[1920px] mx-auto px-6 hidden">
                     <h2 class="text-xl font-bold mb-4">My Borrowed Books</h2>
                      <div id="borrowed-books-list" class="space-y-4">
                         </div>

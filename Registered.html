@@ -41,7 +41,7 @@
     </select>
   </div>
 
-  <div class="table-container">
+  <div class="table-container" style="position: relative; padding-bottom: 60px;">
     <table>
       <thead>
         <tr>
@@ -56,6 +56,12 @@
       <tbody id="usersTableBody">
         </tbody>
     </table>
+
+    <div id="pagination-controls" style="position: absolute; bottom: 15px; right: 20px; display: flex; align-items: center; gap: 10px;">
+        <span id="page-info" style="font-size: 14px; color: #555;"></span>
+        <button id="prev-btn" class="btn-email" style="background: #ccc; cursor: not-allowed;" disabled>Previous</button>
+        <button id="next-btn" class="btn-email">Next</button>
+    </div>
   </div>
 
   <script src="Registered.js"></script>

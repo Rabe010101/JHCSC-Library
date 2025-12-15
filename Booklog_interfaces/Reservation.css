@@ -9,6 +9,11 @@ body {
   color: #272323;
 }
 
+/* FIX 1: Stop horizontal/layout shift */
+html {
+    overflow-y: scroll;
+}
+
 /* Navbar */
 nav {
   display: flex;
@@ -133,13 +138,20 @@ nav ul li a:hover {
   vertical-align: middle;
 }
 
-/* Table */
+/* FIX 2: Stabilize Table Container */
 .table-container {
   margin: 25px auto;
   width: 95%;
   background: #fff;
   padding: 8px;
   border-radius: 2px;
+  
+  /* NEW RULES */
+  min-height: 0;
+  height: auto;
+  padding-bottom: 60px; /* Space for the absolute buttons */
+  position: relative;
+  transition: min-height 0.2s ease;
 }
 
 table {

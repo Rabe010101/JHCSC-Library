@@ -26,53 +26,67 @@ switch ($action) {
         $search = $_GET['search'] ?? '';
         $category = $_GET['category'] ?? '';
         $year = $_GET['year'] ?? '';
+        
+        // --- PAGINATION PARAMETERS ---
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20; // Default 20 books per page
+        $offset = ($page - 1) * $limit;
 
-        $sql = "SELECT
-            b.id, b.title, b.author, b.publisher, b.year, b.cover, b.copies,
-            c.name AS category,
-            b.category_id
-        FROM books b
-        LEFT JOIN categories c ON b.category_id = c.id";
-        $conditions = [];
+        // Base WHERE clause logic (Reused for both Data and Count queries)
+        $whereSQL = "";
         $params = [];
-        $types = '';
+        $types = "";
+        $conditions = [];
 
-        // Handle search term
         if (!empty($search)) {
-            $conditions[] = "(title LIKE ? OR author LIKE ?)";
+            $conditions[] = "(b.title LIKE ? OR b.author LIKE ?)";
             $searchTerm = "%" . $search . "%";
             $params[] = $searchTerm;
             $params[] = $searchTerm;
             $types .= 'ss';
         }
-
-        // Handle category filter
         if (!empty($category)) {
-            $conditions[] = "category = ?";
+            $conditions[] = "b.category_id = ?";
             $params[] = $category;
+            $types .= 'i';
+        }
+        if (!empty($year)) {
+            $conditions[] = "CAST(b.year AS CHAR) LIKE ?";
+            $params[] = "%" . $year . "%";
             $types .= 's';
         }
 
-        // MODIFIED: Handle year filter to search like text
-        if (!empty($year)) {
-            // This converts the year to text to allow partial matches
-            $conditions[] = "CAST(year AS CHAR) LIKE ?"; 
-            // This adds wildcards to the year search term
-            $params[] = "%" . $year . "%"; 
-            // This changes the parameter type to a string
-            $types .= 's'; 
-        }
-
-        // Combine conditions if any exist
         if (!empty($conditions)) {
-            $sql .= " WHERE " . implode(" AND ", $conditions);
+            $whereSQL = " WHERE " . implode(" AND ", $conditions);
         }
 
-        $sql .= " ORDER BY title ASC";
-        
-        $stmt = $conn->prepare($sql);
+        // --- QUERY 1: Get Total Count (For Pagination Buttons) ---
+        $countSql = "SELECT COUNT(*) as total FROM books b" . $whereSQL;
+        $stmtCount = $conn->prepare($countSql);
+        if (!empty($params)) {
+            $stmtCount->bind_param($types, ...$params);
+        }
+        $stmtCount->execute();
+        $totalResult = $stmtCount->get_result()->fetch_assoc();
+        $totalRecords = $totalResult['total'];
+        $stmtCount->close();
 
-        // Bind parameters if any exist
+        // --- QUERY 2: Get Actual Data (With LIMIT and OFFSET) ---
+        $sql = "SELECT
+            b.id, b.title, b.author, b.publisher, b.year, b.cover, b.copies,
+            c.name AS category,
+            b.category_id
+        FROM books b
+        LEFT JOIN categories c ON b.category_id = c.id" . $whereSQL;
+
+        $sql .= " ORDER BY b.title ASC LIMIT ? OFFSET ?";
+        
+        // Add Limit and Offset to params
+        $params[] = $limit;
+        $params[] = $offset;
+        $types .= "ii";
+
+        $stmt = $conn->prepare($sql);
         if (!empty($params)) {
             $stmt->bind_param($types, ...$params);
         }
@@ -83,7 +97,18 @@ switch ($action) {
         while ($row = $result->fetch_assoc()) {
             $books[] = $row;
         }
-        echo json_encode($books);
+
+        // Return structured JSON with pagination data
+        echo json_encode([
+            'data' => $books,
+            'pagination' => [
+                'totalRecords' => $totalRecords,
+                'totalPages' => ceil($totalRecords / $limit),
+                'currentPage' => $page,
+                'limit' => $limit
+            ]
+        ]);
+        
         $stmt->close();
         break;
 
