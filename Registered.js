@@ -1,35 +1,37 @@
-// Registered.js
-
 document.addEventListener('DOMContentLoaded', function () {
-    // --- 1. Element Selectors ---
+    // --- Selectors ---
     const usersTableBody = document.getElementById('usersTableBody');
-    const searchBox = document.getElementById('searchBox'); // Ensure this ID matches your HTML
-    const yearFilter = document.getElementById('yearFilter'); // Ensure this ID matches your HTML
-    const courseFilter = document.getElementById('courseFilter'); // Ensure this ID matches your HTML
-
-    // Pagination Selectors
+    const searchBox = document.getElementById('searchBox');
+    const yearFilter = document.getElementById('yearFilter');
+    const courseFilter = document.getElementById('courseFilter');
+    
+    // Pagination
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
     const pageInfo = document.getElementById('page-info');
 
-    // --- 2. Global Variables ---
+    // Email Modal Selectors
+    const emailModal = document.getElementById('emailModal');
+    const closeEmailModalBtn = document.getElementById('closeEmailModal');
+    const emailForm = document.getElementById('emailForm');
+    const emailRecipientInput = document.getElementById('emailRecipient');
+    const emailDisplayInput = document.getElementById('emailDisplay');
+
+    // --- Global Variables ---
     let currentPage = 1;
     const itemsPerPage = 20;
 
-    // --- 3. Main Function to Fetch Users ---
+    // --- Fetch Users ---
     function fetchUsers(page = 1) {
-        // Get current values from filters
         const searchTerm = searchBox ? searchBox.value : '';
         const year = yearFilter ? yearFilter.value : '';
         const course = courseFilter ? courseFilter.value : '';
 
-        // Construct API URL
         const apiUrl = `users_api.php?search=${encodeURIComponent(searchTerm)}&year=${encodeURIComponent(year)}&course=${encodeURIComponent(course)}&page=${page}&limit=${itemsPerPage}`;
 
         fetch(apiUrl)
             .then(response => response.json())
             .then(response => {
-                // Handle new API response structure { data: [...], pagination: {...} }
                 const users = response.data || [];
                 const pagination = response.pagination;
 
@@ -37,11 +39,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (users.length === 0) {
                     usersTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">No registered users found.</td></tr>';
-                    updatePaginationControls(0, 0, 1);
+                    if(pagination) updatePaginationControls(0, 0, 1);
                     return;
                 }
 
-                // Generate Rows
                 users.forEach(user => {
                     const row = usersTableBody.insertRow();
                     row.innerHTML = `
@@ -51,62 +52,100 @@ document.addEventListener('DOMContentLoaded', function () {
                         <td>${user.year}</td>
                         <td>${user.email}</td>
                         <td>
-                            <button class="btn-email" onclick="window.open('https://mail.google.com/mail/?view=cm&fs=1&to=${user.email}', '_blank')">
+                            <button class="btn-email" onclick="openEmailModal('${user.email}', '${user.firstname} ${user.surname}')">
                                 Email
                             </button>
                         </td>
                     `;
                 });
 
-                // Update Pagination Buttons
                 if (pagination) {
                     updatePaginationControls(pagination.totalRecords, pagination.totalPages, pagination.currentPage);
                 }
             })
-            .catch(error => {
-                console.error('Error fetching users:', error);
-                usersTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Failed to load data.</td></tr>';
-            });
+            .catch(error => console.error('Error:', error));
     }
 
-    // --- 4. Pagination UI Logic ---
+    // --- Email Modal Logic ---
+    window.openEmailModal = function(email, name) {
+        emailRecipientInput.value = email;
+        emailDisplayInput.value = `${name} <${email}>`;
+        document.getElementById('emailSubject').value = '';
+        document.getElementById('emailMessage').value = '';
+        emailModal.style.display = 'block';
+    };
+
+    closeEmailModalBtn.onclick = function() {
+        emailModal.style.display = 'none';
+    };
+
+    window.onclick = function(event) {
+        if (event.target == emailModal) {
+            emailModal.style.display = 'none';
+        }
+    };
+
+    emailForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const btn = emailForm.querySelector('button');
+        const originalText = btn.textContent;
+        btn.textContent = 'Sending...';
+        btn.disabled = true;
+
+        const data = {
+            email: emailRecipientInput.value,
+            subject: document.getElementById('emailSubject').value,
+            message: document.getElementById('emailMessage').value
+        };
+
+        fetch('send_email_api.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(result => {
+            alert(result.message);
+            if (result.success) {
+                emailModal.style.display = 'none';
+            }
+            btn.textContent = originalText;
+            btn.disabled = false;
+        })
+        .catch(err => {
+            alert('Error sending email.');
+            btn.textContent = originalText;
+            btn.disabled = false;
+        });
+    });
+
+    // --- Pagination Controls (Same as before) ---
     function updatePaginationControls(totalRecords, totalPages, current) {
         currentPage = current;
-        
-        if (pageInfo) {
-            pageInfo.textContent = `Page ${current} of ${totalPages || 1} (Total: ${totalRecords})`;
-        }
+        if (pageInfo) pageInfo.textContent = `Page ${current} of ${totalPages || 1} (Total: ${totalRecords})`;
 
         if (prevBtn && nextBtn) {
-            // Previous Button State
             if (current <= 1) {
                 prevBtn.disabled = true;
                 prevBtn.style.background = '#ccc';
-                prevBtn.style.cursor = 'not-allowed';
             } else {
                 prevBtn.disabled = false;
-                prevBtn.style.background = '#005aad'; // Your email button color
-                prevBtn.style.cursor = 'pointer';
+                prevBtn.style.background = '#005aad';
             }
 
-            // Next Button State
             if (current >= totalPages || totalPages === 0) {
                 nextBtn.disabled = true;
                 nextBtn.style.background = '#ccc';
-                nextBtn.style.cursor = 'not-allowed';
             } else {
                 nextBtn.disabled = false;
                 nextBtn.style.background = '#005aad';
-                nextBtn.style.cursor = 'pointer';
             }
         }
     }
 
-    // --- 5. Event Listeners ---
-    
-    // Filters: Reset to Page 1 when searching/filtering
     function updateFilters() {
-        currentPage = 1; 
+        currentPage = 1;
         fetchUsers(1);
     }
 
@@ -114,20 +153,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (yearFilter) yearFilter.addEventListener('change', updateFilters);
     if (courseFilter) courseFilter.addEventListener('change', updateFilters);
 
-    // Pagination Buttons
-    if (prevBtn) {
-        prevBtn.addEventListener('click', () => {
-            if (currentPage > 1) fetchUsers(currentPage - 1);
-        });
-    }
+    if (prevBtn) prevBtn.addEventListener('click', () => { if (currentPage > 1) fetchUsers(currentPage - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', () => { fetchUsers(currentPage + 1); });
 
-    if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-            // Check disabled attribute to be safe
-            if (!nextBtn.disabled) fetchUsers(currentPage + 1);
-        });
-    }
-
-    // --- 6. Initial Load ---
     fetchUsers(1);
 });
