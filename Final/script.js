@@ -17,26 +17,67 @@ const reserveBookGrid = document.getElementById('reserve-book-grid');
 let allBooks = [];
 let myFavoriteBooks = [];
 let previousPageId = 'home';
-let currentReserveCategory = 'all';
 let currentNavigationList = [];
+
+// --- MEMORY VARIABLES ---
+let currentReserveCategory = 'all'; 
+let currentSearchQuery = '';        
+let currentSearchCategory = '';     
 
 // --- Page Navigation & UI Functions ---
 function navigateTo(pageId, bookId = null) {
+    // 1. Handle History (Where did we come from?)
     if (pageId !== 'reserve-book') {
         previousPageId = pageId;
     }
-    window.location.hash = pageId;
+    
+    // 2. URL LOGIC FIX: Ensure the ID is in the URL so refreshes work
+    // Construct the target hash (e.g., "#reserve-book=5")
+    const targetHash = bookId ? `#${pageId}=${bookId}` : `#${pageId}`;
+    
+    // If the URL isn't correct yet, update it and STOP.
+    // The 'hashchange' event will trigger this function again immediately.
+    if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+        return; 
+    }
+    
+    // 3. Render the Page
     pageContents.forEach(page => page.classList.add('hidden'));
     const targetPage = document.getElementById(pageId + '-page');
+    
     if (targetPage) {
         targetPage.classList.remove('hidden');
-        if (pageId === 'my-books') renderMyBooks();
         
-        // Render all books when visiting the search page
-        else if (pageId === 'search-library') renderBooks(allBooks, searchResults);
-        
-        else if (pageId === 'reserve') renderReservePage();
-        else if (pageId === 'reserve-book' && bookId !== null) renderReserveBook(bookId);
+        if (pageId === 'my-books') {
+            renderMyBooks();
+            currentNavigationList = myFavoriteBooks;
+        }
+        else if (pageId === 'search-library') {
+            const searchInputEl = document.getElementById('search-input');
+            const searchCatEl = document.getElementById('search-category');
+            if (searchInputEl) searchInputEl.value = currentSearchQuery;
+            if (searchCatEl) searchCatEl.value = currentSearchCategory;
+
+            const filteredBooks = allBooks.filter(book => {
+                const matchesText = (
+                    book.title.toLowerCase().includes(currentSearchQuery) ||
+                    book.author.toLowerCase().includes(currentSearchQuery) ||
+                    (book.year && book.year.toString().includes(currentSearchQuery))
+                );
+                const matchesCategory = currentSearchCategory === "" || book.category === currentSearchCategory;
+                return matchesText && matchesCategory;
+            });
+
+            renderBooks(filteredBooks, searchResults);
+        }
+        else if (pageId === 'reserve') {
+            renderReservePage();
+        } 
+        // FIX: Ensure bookId is passed correctly
+        else if (pageId === 'reserve-book' && bookId !== null) {
+            renderReserveBook(bookId);
+        }
         else if (pageId === 'reservations') renderReservations();
         else if (pageId === 'account') fetchAccountData();
         else if (pageId === 'history') renderHistory();
@@ -44,7 +85,11 @@ function navigateTo(pageId, bookId = null) {
 }
 
 function cancelReservationFlow() {
-    navigateTo(previousPageId);
+    if (previousPageId && previousPageId !== 'reserve-book') {
+        navigateTo(previousPageId);
+    } else {
+        navigateTo('search-library');
+    }
 }
 
 function showModal(title, message) {
@@ -65,7 +110,6 @@ function hideModal() {
 
 // --- Rendering Functions ---
 
-// Function to load categories into the Search Dropdown
 function loadSearchCategories() {
     const categorySelect = document.getElementById('search-category');
     if (!categorySelect) return;
@@ -73,50 +117,44 @@ function loadSearchCategories() {
     fetch('api.php?action=getCategories')
         .then(res => res.json())
         .then(data => {
-            // Keep the default option
             categorySelect.innerHTML = '<option value="">All Categories</option>';
             data.forEach(cat => {
                 categorySelect.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
             });
+            categorySelect.value = currentSearchCategory;
         })
         .catch(err => console.error("Error loading categories:", err));
 }
 
-// Main Search Function (Handles Text + Category + Enter Key)
 function searchBooks() {
     const inputVal = document.getElementById('search-input').value.toLowerCase();
     const categorySelect = document.getElementById('search-category');
     const selectedCategory = categorySelect ? categorySelect.value : "";
     const resultsContainer = document.getElementById('search-results');
 
-    // Go to search page if not already there
+    currentSearchQuery = inputVal;
+    currentSearchCategory = selectedCategory;
+
     navigateTo('search-library');
 
-    // Filter Logic
     const filteredBooks = allBooks.filter(book => {
-        // 1. Text Match
         const matchesText = (
             book.title.toLowerCase().includes(inputVal) ||
             book.author.toLowerCase().includes(inputVal) ||
             (book.year && book.year.toString().includes(inputVal))
         );
-        
-        // 2. Category Match
         const matchesCategory = selectedCategory === "" || book.category === selectedCategory;
-
         return matchesText && matchesCategory;
     });
 
     renderBooks(filteredBooks, resultsContainer);
 }
 
-// Modified renderBooks to accept a target container
 function renderBooks(booksToRender, container) {
     if (!container) return;
     currentNavigationList = booksToRender;
     container.innerHTML = '';
     
-    // Check if empty
     if (booksToRender.length === 0) {
         container.innerHTML = `
             <div class="col-span-full text-center py-8">
@@ -132,7 +170,6 @@ function renderBooks(booksToRender, container) {
         const favBtnClass = isFavorited ? 'bg-gray-400 cursor-not-allowed' : 'bg-yellow-500 hover:bg-yellow-600';
         const favBtnText = isFavorited ? 'In Favorites' : 'Add to Favorites';
         
-        // Consistent Card Design
         container.innerHTML += `
             <div class="bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-md border border-white/20 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col items-center text-center h-full" onclick="navigateTo('reserve-book', ${book.id})">
                 <img src="${book.cover}" alt="${book.title}" class="rounded-md mb-3 book-cover group-hover:scale-105 transition-transform" onerror="this.src='https://placehold.co/120x150?text=No+Image'">
@@ -158,7 +195,6 @@ function renderReservePage() {
                 categories.forEach(cat => {
                     reserveSelect.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
                 });
-
                 reserveSelect.value = currentReserveCategory;
             }
 
@@ -178,6 +214,9 @@ function renderMyBooks() {
         myBooksList.innerHTML = '<p class="text-center text-gray-500">You have no favorited books.</p>';
         return;
     }
+    
+    currentNavigationList = myFavoriteBooks; 
+
     myFavoriteBooks.forEach(book => {
         const isAvailable = book.copies > 0;
         const statusText = isAvailable ? 'Available' : 'Unavailable';
@@ -186,8 +225,11 @@ function renderMyBooks() {
         const removeBtnClass = 'bg-red-500 text-white hover:bg-red-600';
 
         myBooksList.innerHTML += `
-            <div class="bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-md border border-white/20 flex items-start space-x-4">
+            <div class="bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-md border border-white/20 flex items-start space-x-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200" 
+                 onclick="navigateTo('reserve-book', ${book.id})">
+                
                 <img src="${book.cover}" alt="${book.title}" class="rounded-md book-cover-sm" onerror="this.src='https://placehold.co/80x110?text=No+Image'">
+                
                 <div class="flex-grow">
                     <div class="flex justify-between items-start">
                         <div>
@@ -200,11 +242,11 @@ function renderMyBooks() {
                     </div>
                     <div class="mt-3 flex justify-end space-x-2">
                         <button class="px-3 py-1.5 text-xs font-medium rounded-md ${reserveBtnClass} transition-colors" 
-                                onclick="navigateTo('reserve-book', ${book.id})" ${!isAvailable ? 'disabled' : ''}>
+                                onclick="event.stopPropagation(); navigateTo('reserve-book', ${book.id})" ${!isAvailable ? 'disabled' : ''}>
                             Reserve
                         </button>
                         <button class="px-3 py-1.5 text-xs font-medium rounded-md ${removeBtnClass} transition-colors" 
-                                onclick="removeFromFavorites(${book.id})">
+                                onclick="event.stopPropagation(); removeFromFavorites(${book.id})">
                             Remove
                         </button>
                     </div>
@@ -214,29 +256,24 @@ function renderMyBooks() {
 }
 
 function renderReserveBook(bookId) {
-    // 1. USE THE SAVED LIST (Works for both Search and Reserve pages)
-    // If the list is empty (edge case), fallback to allBooks
     let navigationList = (currentNavigationList && currentNavigationList.length > 0) 
                          ? currentNavigationList 
                          : allBooks;
 
-    // 2. Find book index in that specific list
     const index = navigationList.findIndex(b => b.id == bookId);
-    
-    // Safety fallback: If book isn't in the list (rare), find it in allBooks
     const book = index !== -1 ? navigationList[index] : allBooks.find(b => b.id == bookId);
 
     if (!book) {
+        // Only show error if data is fully loaded. If reloading page, this might run before fetch.
+        // But fetchInitialData() handles timing usually.
         showModal('Error', 'Book details not found.');
         navigateTo('search-library');
         return;
     }
 
-    // 3. Navigation (Previous/Next)
     const prevBook = index > 0 ? navigationList[index - 1] : null;
     const nextBook = index < navigationList.length - 1 ? navigationList[index + 1] : null;
     
-    // 4. Prepare Arrow HTML (Same as before)
     const prevBtn = prevBook 
         ? `<button onclick="renderReserveBook(${prevBook.id})" class="p-3 bg-white rounded-full shadow-lg text-gray-600 hover:text-green-600 hover:scale-110 transition-all">
              <i class="fas fa-chevron-left text-xl"></i>
@@ -249,7 +286,6 @@ function renderReserveBook(bookId) {
            </button>` 
         : `<div class="w-12"></div>`; 
 
-    // 5. Render the Compact Container (Same as before)
     const containerPage = document.getElementById('reserve-book-page');
     
     if (containerPage) {
@@ -263,7 +299,7 @@ function renderReserveBook(bookId) {
 
                 <div class="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-2xl flex flex-col md:flex-row gap-8 w-full max-w-3xl relative animate-fadeIn">
                     
-                    <button onclick="cancelReservationFlow()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
+                    <button onclick="cancelReservationFlow()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors z-10 cursor-pointer">
                         <i class="fas fa-times text-xl"></i>
                     </button>
 
@@ -312,6 +348,7 @@ function renderReserveBook(bookId) {
     }
 }
 
+// ... (Reservations, History, API, Modal logic remain unchanged) ...
 function renderReservations() {
     if (!reservationsList) return;
     reservationsList.innerHTML = '<p class="text-center text-gray-500">Loading reservations...</p>';
@@ -358,7 +395,6 @@ function renderReservations() {
                                 </span>
                             </div>
                             <div class="mt-2 text-xs text-gray-500 space-y-1">
-                                
                                 <div class="flex items-center group">
                                     <p>Transaction #: <span class="font-mono text-gray-700 font-medium select-all">${res.transaction_number}</span></p>
                                     <button onclick="copyToClipboard('${res.transaction_number}', this)" 
@@ -441,12 +477,10 @@ function renderHistory() {
         .then(res => res.json())
         .then(data => {
             historyList.innerHTML = '';
-            
             if (data.length === 0) {
                 historyList.innerHTML = '<p class="text-center text-gray-500 py-8">No returned books found in your history.</p>';
                 return;
             }
-
             data.forEach(item => {
                 historyList.innerHTML += `
                     <div class="bg-white/90 backdrop-blur-sm p-5 rounded-xl shadow-md border border-white/20 flex items-start space-x-4">
@@ -505,8 +539,8 @@ function addToFavorites(bookId) {
                 if (data.success) {
                     myFavoriteBooks.push(book);
                     showModal('Added to Favorites', `"${book.title}" has been added to your favorites.`);
-                    if(window.location.hash === '#search-library') searchBooks(); // Use new search function
-                    if(window.location.hash === '#reserve') renderReservePage();
+                    if(window.location.hash.includes('search-library')) searchBooks();
+                    if(window.location.hash.includes('reserve')) renderReservePage();
                 }
             });
     }
@@ -601,7 +635,6 @@ function deleteReservation(reservationId) {
     }
 }
 
-// --- Initial Setup & Data Fetching ---
 function fetchInitialData() {
     return Promise.all([
             fetch('api.php?action=getAllBooks').then(res => res.json()),
@@ -616,16 +649,13 @@ function fetchInitialData() {
         .catch(error => console.error('Initial data fetch error:', error));
 }
 
-// NEW: Helper function with Fallback for older browsers/insecure contexts
 function copyToClipboard(text, btnElement) {
-    // 1. Try Modern API
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => showCopyFeedback(btnElement));
     } else {
-        // 2. Fallback for non-secure contexts (older method)
         const textArea = document.createElement("textarea");
         textArea.value = text;
-        textArea.style.position = "fixed"; // Avoid scrolling to bottom
+        textArea.style.position = "fixed";
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
@@ -655,46 +685,55 @@ function showCopyFeedback(btnElement) {
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Fetch initial data
     fetchInitialData().then(() => {
+        // --- NEW: Handle URL with Parameters (Refresh Fix) ---
         function handlePageNavigation() {
-            const pageId = window.location.hash.substring(1) || 'home';
-            navigateTo(pageId);
+            // Get hash minus the #
+            const hash = window.location.hash.substring(1); 
+            // Split e.g., "reserve-book=5" into ["reserve-book", "5"]
+            const parts = hash.split('=');
+            
+            const pageId = parts[0] || 'home';
+            const param = parts[1] || null; // This is the bookId
+
+            navigateTo(pageId, param);
+            
             navLinks.forEach(link => {
                 link.classList.toggle('active', link.getAttribute('data-page') === pageId);
             });
         }
+        
         window.addEventListener('hashchange', handlePageNavigation);
+        
+        // Initial load (handles the refresh case)
         handlePageNavigation();
     });
 
     // 2. Load Search Categories
     loadSearchCategories();
     
-    // --- NEW: Instant Search on Category Change ---
+    // 3. Category Change Search
     const categorySelect = document.getElementById('search-category');
     if (categorySelect) {
         categorySelect.addEventListener('change', () => {
-            searchBooks(); // Trigger search immediately when category changes
+            searchBooks(); 
         });
     }
 
-    // 3. Add Enter key listener for search
+    // 4. Enter Key Search
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
-                searchBooks(); // Trigger search on Enter
+                searchBooks(); 
             }
         });
     }
 
-    // NEW: Handle Reserve Page Dropdown Change
+    // 5. Reserve Page Dropdown
     const reserveSelect = document.getElementById('reserve-category-filter');
     if (reserveSelect) {
         reserveSelect.addEventListener('change', (e) => {
-            // 1. SAVE: Update the global memory variable
             currentReserveCategory = e.target.value;
-            
-            // 2. Filter using the new value
             if (currentReserveCategory === 'all') {
                 renderBooks(allBooks, reserveBookGrid);
             } else {
@@ -704,13 +743,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // 5. Update Search Button Click (UPDATED)
+    // 6. Search Button
     if (searchButton) {
         searchButton.addEventListener('click', () => {
              searchBooks(); 
         });
     }
 
+    // 7. Logout
     if (userLogoutButton) {
         userLogoutButton.addEventListener('click', () => {
             if (confirm("Are you sure you want to log out?")) {

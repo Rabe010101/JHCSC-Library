@@ -52,7 +52,17 @@ if ($method === 'GET') {
         echo json_encode($data);
 
     } elseif ($action === 'getFavorites') {
-        $stmt = $conn->prepare("SELECT b.*, CASE WHEN b.copies > 0 THEN 'Available' ELSE 'Unavailable' END AS status FROM books b JOIN user_favorites uf ON b.id = uf.book_id WHERE uf.user_id = ?");
+        // Updated query to join categories table
+        $stmt = $conn->prepare("
+            SELECT 
+                b.*, 
+                c.name AS category, 
+                CASE WHEN b.copies > 0 THEN 'Available' ELSE 'Unavailable' END AS status 
+            FROM books b 
+            JOIN user_favorites uf ON b.id = uf.book_id 
+            LEFT JOIN categories c ON b.category_id = c.id 
+            WHERE uf.user_id = ?
+        ");
         $stmt->bind_param("i", $userId);
         $stmt->execute();
         $result = $stmt->get_result();

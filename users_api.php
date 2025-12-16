@@ -1,5 +1,6 @@
 <?php
 // users_api.php
+
 header('Content-Type: application/json');
 
 // 1. Database Connection
@@ -19,17 +20,15 @@ $year = $_GET['year'] ?? '';
 
 // --- PAGINATION PARAMETERS ---
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20; // Default 20 users per page
+$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
 $offset = ($page - 1) * $limit;
 
-// 3. Build Base SQL (Used for both Count and Data)
-// Note: We use "WHERE 1=1" trick so we can easily append "AND ..." conditions
+// 3. Build Base SQL
 $baseSQL = " FROM users WHERE is_verified = 1 AND user_type = 'student'";
 
 $params = [];
 $types = '';
 
-// Add search condition
 if (!empty($search)) {
     $baseSQL .= " AND (firstname LIKE ? OR surname LIKE ? OR email LIKE ?)";
     $searchTerm = "%" . $search . "%";
@@ -37,21 +36,19 @@ if (!empty($search)) {
     $types .= 'sss';
 }
 
-// Add course filter
 if (!empty($course)) {
     $baseSQL .= " AND course = ?";
     $params[] = $course;
     $types .= 's';
 }
 
-// Add year filter
 if (!empty($year)) {
     $baseSQL .= " AND year = ?";
     $params[] = $year;
     $types .= 's';
 }
 
-// --- QUERY 1: Get Total Count (For Pagination) ---
+// --- QUERY 1: Get Total Count ---
 $countSql = "SELECT COUNT(*) as total" . $baseSQL;
 $stmtCount = $conn->prepare($countSql);
 if (!empty($params)) {
@@ -62,10 +59,21 @@ $totalResult = $stmtCount->get_result()->fetch_assoc();
 $totalRecords = $totalResult['total'];
 $stmtCount->close();
 
-// --- QUERY 2: Get Actual Data (With LIMIT and OFFSET) ---
-$sql = "SELECT id, firstname, surname, course, year, email" . $baseSQL . " ORDER BY surname ASC LIMIT ? OFFSET ?";
+// --- QUERY 2: Get Data with BOTH Counts (THE FIX) ---
+$sql = "SELECT 
+            id, firstname, surname, course, year, email,
+            -- Subquery 1: Overdue Books
+            (SELECT COUNT(*) FROM issued_books ib 
+             WHERE ib.user_id = users.id 
+             AND ib.status = 'Issued' 
+             AND ib.due_date < CURDATE()) as overdue_count,
+            -- Subquery 2: Total Active Books
+            (SELECT COUNT(*) FROM issued_books ib 
+             WHERE ib.user_id = users.id 
+             AND ib.status = 'Issued') as active_count
+        " . $baseSQL 
+        . " ORDER BY surname ASC LIMIT ? OFFSET ?";
 
-// Add Pagination Params to binding
 $params[] = $limit;
 $params[] = $offset;
 $types .= "ii";
@@ -82,7 +90,7 @@ while ($row = $result->fetch_assoc()) {
     $users[] = $row;
 }
 
-// 4. Return JSON Response
+// 4. Return JSON
 echo json_encode([
     'data' => $users,
     'pagination' => [

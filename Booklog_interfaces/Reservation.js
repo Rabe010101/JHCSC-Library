@@ -27,19 +27,17 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentPage = 1;
     const itemsPerPage = 20;
 
-    // --- Main Function to Fetch Reservations (With Pagination) ---
+    // --- Main Function to Fetch Reservations ---
     function fetchReservations(page = 1) {
         const searchTerm = searchBox.value;
         const status = statusFilter.value;
         
         const cacheBust = new Date().getTime();
-        // Updated API URL with page and limit
         const apiUrl = `reservations_api.php?action=getReservations&search=${encodeURIComponent(searchTerm)}&status=${encodeURIComponent(status)}&page=${page}&limit=${itemsPerPage}&_=${cacheBust}`;
 
         fetch(apiUrl, { credentials: 'same-origin' })
             .then(response => response.json())
             .then(response => {
-                // Handle new API response structure
                 const data = response.data || []; 
                 const pagination = response.pagination;
 
@@ -64,13 +62,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         const otpExpires = res.otp_expires ? new Date(res.otp_expires.replace(' ', 'T') + 'Z') : null;
                         const now = new Date();
                         
+                        // If OTP is active, show Enter Code. Otherwise show Book Claimed.
+                        // REMOVED: The 'Cancel Reservation' button logic.
                         if (otpExpires && otpExpires > now) {
                             actionButtonHTML = `<button class="btn-enter-code" data-id="${res.id}">Enter Code</button>`;
                         } else {
-                            actionButtonHTML = `
-                                <button class="btn-claim" data-id="${res.id}">Book Claimed</button>
-                                <button class="btn-admin-cancel" data-id="${res.id}">Cancel Reservation</button>
-                            `;
+                            actionButtonHTML = `<button class="btn-claim" data-id="${res.id}">Book Claimed</button>`;
                         }
                     } else if (res.status === 'Cancelled') {
                         actionButtonHTML = `<button class="btn-delete" data-id="${res.id}">Delete</button>`;
@@ -88,7 +85,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         <td class="action-cell">${actionButtonHTML}</td> `;
                 });
 
-                // Update Pagination Buttons
                 if (pagination) {
                     updatePaginationControls(pagination.totalRecords, pagination.totalPages, pagination.currentPage);
                 }
@@ -105,17 +101,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (pageInfo) pageInfo.textContent = `Page ${current} of ${totalPages || 1} (Total: ${totalRecords})`;
 
         if (prevBtn && nextBtn) {
-            // Previous Button
             if (current <= 1) {
                 prevBtn.disabled = true;
                 prevBtn.style.background = '#ccc';
                 prevBtn.style.cursor = 'not-allowed';
             } else {
                 prevBtn.disabled = false;
-                prevBtn.style.background = 'rgb(0, 153, 38)'; // Green to match theme
+                prevBtn.style.background = 'rgb(0, 153, 38)';
                 prevBtn.style.cursor = 'pointer';
             }
-            // Next Button
             if (current >= totalPages || totalPages === 0) {
                 nextBtn.disabled = true;
                 nextBtn.style.background = '#ccc';
@@ -129,9 +123,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- Event Listeners for Filters & Pagination ---
-    
     function updateFilters() {
-        currentPage = 1; // Always reset to page 1 on new search
+        currentPage = 1;
         fetchReservations(1);
     }
     
@@ -148,10 +141,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!nextBtn.disabled) fetchReservations(currentPage + 1);
         });
     }
-
-    // ============================================================
-    //  EXISTING EVENT DELEGATION & MODAL LOGIC (UNCHANGED)
-    // ============================================================
 
     // --- Event Delegation for table buttons ---
     tableBody.addEventListener('click', function(event) {
@@ -174,7 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 .then(result => {
                     alert(result.message);
                     if (result.success) {
-                        fetchReservations(currentPage); // Refresh current page
+                        fetchReservations(currentPage); 
                     } else {
                         target.disabled = false;
                         target.textContent = "Book Claimed";
@@ -199,26 +188,9 @@ document.addEventListener("DOMContentLoaded", () => {
             otpInputs[0].focus();
         }
 
-        // 'Admin Cancel' button
-        else if (target.classList.contains('btn-admin-cancel')) {
-            if (confirm("Are you sure you want to cancel this user's reservation? The book will be returned to inventory.")) {
-                fetch('reservations_api.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'adminCancelReservation', reservationId: reservationId }),
-                    credentials: 'same-origin'
-                })
-                .then(response => response.json())
-                .then(result => {
-                    alert(result.message);
-                    if (result.success) {
-                        fetchReservations(currentPage);
-                    }
-                });
-            }
-        }
+        // REMOVED: 'Admin Cancel' button listener block
 
-        // 'Delete' button
+        // 'Delete' button (Only for already cancelled items)
         else if (target.classList.contains('btn-delete')) {
             if (confirm("Are you sure you want to permanently delete this cancelled reservation?")) {
                 fetch('reservations_api.php', {

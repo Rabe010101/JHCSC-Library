@@ -12,8 +12,9 @@ html {
 }
 
 body {
-  /* FIX 2: LOCK BACKGROUND */
-  background: url("images/red.jpg") no-repeat center center;
+  /* FIX 2: LOCK BACKGROUND WITH DARK OVERLAY */
+  /* Added linear-gradient to dim the image by 50% */
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("images/red.jpg") no-repeat center center/cover;
   background-size: cover;
   background-attachment: fixed; /* CRITICAL: Prevents background from resizing/zooming when page length changes */
   min-height: 100vh;

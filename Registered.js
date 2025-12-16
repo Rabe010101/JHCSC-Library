@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const yearFilter = document.getElementById('yearFilter');
     const courseFilter = document.getElementById('courseFilter');
     
-    // Pagination
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
     const pageInfo = document.getElementById('page-info');
@@ -38,19 +37,40 @@ document.addEventListener('DOMContentLoaded', function () {
                 usersTableBody.innerHTML = '';
 
                 if (users.length === 0) {
-                    usersTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">No registered users found.</td></tr>';
+                    usersTableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">No registered users found.</td></tr>';
                     if(pagination) updatePaginationControls(0, 0, 1);
                     return;
                 }
 
                 users.forEach(user => {
                     const row = usersTableBody.insertRow();
+                    
+                    // --- NEW: Detailed Status Logic ---
+                    const overdue = parseInt(user.overdue_count || 0);
+                    const active = parseInt(user.active_count || 0);
+                    let statusHtml = '';
+
+                    if (overdue > 0) {
+                        // Priority 1: Overdue (Red)
+                        const s = overdue > 1 ? 's' : '';
+                        statusHtml = `<span style="color: #d32f2f; font-weight: bold;">${overdue} Overdue Book${s}</span>`;
+                    } else if (active > 0) {
+                        // Priority 2: Active but safe (Green)
+                        const s = active > 1 ? 's' : '';
+                        statusHtml = `<span style="color: green; font-weight: 500;">${active} Active Book${s}</span>`;
+                    } else {
+                        // Priority 3: Nothing borrowed (Gray)
+                        statusHtml = `<span style="color: #888; font-style: italic;">No Active Books</span>`;
+                    }
+                    // ----------------------------------
+
                     row.innerHTML = `
                         <td>${user.id}</td>
                         <td>${user.firstname} ${user.surname}</td>
                         <td>${user.course}</td>
                         <td>${user.year}</td>
                         <td>${user.email}</td>
+                        <td>${statusHtml}</td>
                         <td>
                             <button class="btn-email" onclick="openEmailModal('${user.email}', '${user.firstname} ${user.surname}')">
                                 Email
@@ -87,7 +107,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     emailForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        
         const btn = emailForm.querySelector('button');
         const originalText = btn.textContent;
         btn.textContent = 'Sending...';
@@ -120,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // --- Pagination Controls (Same as before) ---
+    // --- Pagination Controls ---
     function updatePaginationControls(totalRecords, totalPages, current) {
         currentPage = current;
         if (pageInfo) pageInfo.textContent = `Page ${current} of ${totalPages || 1} (Total: ${totalRecords})`;
