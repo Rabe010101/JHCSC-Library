@@ -7,8 +7,10 @@
 }
 
 body {
-  background: url("images/red.jpg") no-repeat center center/cover;
+  /* Added dark overlay and fixed attachment */
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("images/red.jpg") no-repeat center center/cover;
   background-size: cover;
+  background-attachment: fixed;
   min-height: 100vh;
   color: #333;
 }
@@ -181,4 +183,27 @@ tbody tr:hover {
 
 .btn-email:hover {
   background: #ff7b0f;
+}
+
+html {
+    overflow-y: scroll; /* Stops left/right layout shift */
+}
+
+.table-container {
+  margin: 0 50px 40px 50px;
+  width: auto;
+  max-width: calc(100% - 100px);
+  background: #fff;
+  padding: 10px;
+  border-radius: 2px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  overflow-x: auto; /* Keeps scrollbar for wide tables */
+
+  /* NEW SETTINGS FOR TIGHT FIT */
+  min-height: 0;   /* Allow it to shrink as much as needed */
+  height: auto;    /* Fit the content exactly */
+  
+  /* Space for pagination buttons */
+  padding-bottom: 50px; 
+  position: relative;
 }

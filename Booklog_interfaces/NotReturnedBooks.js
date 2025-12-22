@@ -3,6 +3,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const tableBody = document.getElementById("notReturnedTableBody");
     const searchBox = document.getElementById("searchBox");
 
+    // Pagination Selectors
+    const prevBtn = document.getElementById("prev-btn");
+    const nextBtn = document.getElementById("next-btn");
+    const pageInfo = document.getElementById("page-info");
+
     // --- OTP Modal Selectors ---
     const otpModal = document.getElementById("otpModal");
     const closeOtpModalBtn = document.getElementById("closeOtpModal");
@@ -15,17 +20,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const otpCodeCombined = document.getElementById("otpCodeCombined");
     const resendOtpLink = document.getElementById("resendOtpLink");
 
+    // --- Global Variables ---
+    let currentPage = 1;
+    const itemsPerPage = 20;
+    let searchTimeout = null; // For Debouncing
+
     // --- Function to fetch not returned books ---
-    function fetchNotReturnedBooks() {
+    function fetchNotReturnedBooks(page = 1) {
         const searchTerm = searchBox.value;
         const cacheBust = new Date().getTime();
         
-        // --- USING not_returned_api.php ---
-        const apiUrl = `not_returned_api.php?action=getNotReturnedBooks&search=${encodeURIComponent(searchTerm)}&_=${cacheBust}`;
+        // Updated URL with pagination
+        const apiUrl = `not_returned_api.php?action=getNotReturnedBooks&search=${encodeURIComponent(searchTerm)}&page=${page}&limit=${itemsPerPage}&_=${cacheBust}`;
 
-        fetch(apiUrl)
+        fetch(apiUrl, { credentials: 'same-origin' })
             .then(response => response.json())
             .then(data => {
+                // Handle response structure
+                const books = data.data || [];
+                const pagination = data.pagination;
+
                 tableBody.innerHTML = "";
                 
                 if (data.error) {
@@ -34,26 +48,24 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                if (data.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No overdue books found.</td></tr>';
+                if (!books || books.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">No overdue books found.</td></tr>';
+                    if(pagination) updatePaginationControls(0, 0, 1);
                     return;
                 }
 
-                data.forEach(book => {
+                books.forEach(book => {
                     const row = tableBody.insertRow();
                     let actionButtonHTML = '';
 
-                    // --- NEW: Render Logic ---
                     const otpExpires = book.otp_expires ? new Date(book.otp_expires.replace(' ', 'T') + 'Z') : null;
                     const now = new Date();
                     
                     if (otpExpires && otpExpires > now) {
                         actionButtonHTML = `<button class="btn-enter-code" data-id="${book.id}">Enter Code</button>`;
                     } else {
-                        // Using .btn-return style from NotReturned.css
                         actionButtonHTML = `<button class="btn-return" data-id="${book.id}">Returned</button>`;
                     }
-                    // --- End of new logic ---
 
                     row.innerHTML = `
                         <td>${book.user_id}</td>
@@ -66,12 +78,74 @@ document.addEventListener("DOMContentLoaded", () => {
                         <td class="action-cell">${actionButtonHTML}</td>
                     `;
                 });
+
+                // Update Pagination Controls
+                if (pagination) {
+                    updatePaginationControls(pagination.totalRecords, pagination.totalPages, pagination.currentPage);
+                }
             })
             .catch(error => {
                 console.error("Failed to fetch not returned books:", error);
                 tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Error loading data.</td></tr>';
             });
     }
+
+    // --- Pagination UI Logic ---
+    function updatePaginationControls(totalRecords, totalPages, current) {
+        currentPage = current;
+        if (pageInfo) pageInfo.textContent = `Page ${current} of ${totalPages || 1} (Total: ${totalRecords})`;
+
+        if (prevBtn && nextBtn) {
+            if (current <= 1) {
+                prevBtn.disabled = true;
+                prevBtn.style.background = '#ccc';
+                prevBtn.style.cursor = 'not-allowed';
+            } else {
+                prevBtn.disabled = false;
+                prevBtn.style.background = '#00af26'; // Match .btn-return color
+                prevBtn.style.cursor = 'pointer';
+            }
+
+            if (current >= totalPages || totalPages === 0) {
+                nextBtn.disabled = true;
+                nextBtn.style.background = '#ccc';
+                nextBtn.style.cursor = 'not-allowed';
+            } else {
+                nextBtn.disabled = false;
+                nextBtn.style.background = '#00af26';
+                nextBtn.style.cursor = 'pointer';
+            }
+        }
+    }
+
+    // --- Event Listeners ---
+
+    // 1. Debounced Search
+    if (searchBox) {
+        searchBox.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentPage = 1;
+                fetchNotReturnedBooks(1);
+            }, 300);
+        });
+    }
+
+    // 2. Pagination Buttons
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) fetchNotReturnedBooks(currentPage - 1);
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (!nextBtn.disabled) fetchNotReturnedBooks(currentPage + 1);
+        });
+    }
+
+    // Initial Load
+    fetchNotReturnedBooks(1);
 
     // --- Event Delegation for table buttons ---
     tableBody.addEventListener("click", (e) => {
@@ -90,7 +164,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 fetch(apiFile, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'sendReturnOTP', issuedId: issuedId })
+                    body: JSON.stringify({ action: 'sendReturnOTP', issuedId: issuedId }),
+                    credentials: 'same-origin'
                 })
                 .then(response => response.json())
                 .then(result => {
@@ -159,7 +234,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 action: 'verifyAndReturnBook', 
                 issuedId: issuedId,
                 otp: otp 
-            })
+            }),
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(result => {
@@ -192,7 +268,8 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch(apiFile, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'sendReturnOTP', issuedId: issuedId })
+            body: JSON.stringify({ action: 'sendReturnOTP', issuedId: issuedId }),
+            credentials: 'same-origin'
         })
         .then(response => response.json())
         .then(result => {

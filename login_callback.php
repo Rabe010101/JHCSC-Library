@@ -64,47 +64,53 @@ if (empty($profile_data)) {
 
 $email = $profile_data['email'];
 
-// 3. Log in or Register the user in your database
+// --- NEW: Extract Names for Fast Track ---
+$google_firstname = isset($profile_data['given_name']) ? $profile_data['given_name'] : '';
+$google_surname = isset($profile_data['family_name']) ? $profile_data['family_name'] : '';
+
+// 3. Check if user exists
 $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
 $stmt->bind_param("s", $email);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows > 0) {
-    // --- USER EXISTS: Log them in (BUT CHECK VERIFICATION) ---
+    // --- SCENARIO A: USER EXISTS (Normal Login) ---
     $user = $result->fetch_assoc();
     
-    // --- THIS IS THE NEW SECURITY CHECK ---
     if ($user['is_verified'] == 1) {
-        // User IS verified, log them in
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['firstname'] . ' ' . $user['surname'];
         $_SESSION['user_type'] = $user['user_type'];
 
-        // Check: Is their profile complete?
         if ($user['course'] == 'N/A' || $user['year'] == 'N/A' || $user['course'] == '' || $user['year'] == '') {
             header('Location: signup_step3.php');
             exit();
         } else {
-            // Profile is complete, send to main app
             header('Location: ' . $USER_APP_PATH);
             exit();
         }
     } else {
-        // User is NOT verified, block login
-        // Redirect back to Home.html with our new error
         header('Location: Home.html#error=google_not_verified');
         exit();
     }
-    // --- END OF NEW SECURITY CHECK ---
 
 } else {
-    // --- USER DOES NOT EXIST: DO NOT CREATE ACCOUNT ---
-    // (This is the logic we added in our previous step)
-    header('Location: Home.html#error=google_no_account');
+    // --- SCENARIO B: USER DOES NOT EXIST (Fast Track) ---
+    // Instead of showing an error, we skip Step 1 and go to Step 2
+    
+    // 1. Mark as verified (Skip OTP)
+    $_SESSION['is_email_verified'] = true;
+    $_SESSION['signup_email'] = $email;
+
+    // 2. Save Google Data to pre-fill the form in Step 2
+    $_SESSION['signup_google_firstname'] = $google_firstname;
+    $_SESSION['signup_google_surname'] = $google_surname;
+
+    // 3. Redirect DIRECTLY to Account Setup
+    header('Location: signup_step2.php');
     exit();
 }
 $stmt->close();
 $conn->close();
-
 ?>

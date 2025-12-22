@@ -3,7 +3,7 @@
 
 header('Content-Type: application/json');
 
-// --- 1. Database Connection ---
+// 1. Database Connection
 $servername = "localhost";
 $username = "root";
 $password = "";
@@ -13,51 +13,72 @@ if ($conn->connect_error) {
     die(json_encode(['error' => 'Connection Failed']));
 }
 
-// --- 2. Get Filters from Request ---
+// 2. Get Parameters
 $search = $_GET['search'] ?? '';
 $course = $_GET['course'] ?? '';
 $year = $_GET['year'] ?? '';
 
-// --- 3. Build SQL Query Securely ---
-// Base query selects all necessary fields but excludes admins from the list.
-$sql = "SELECT id, firstname, surname, course, year, email FROM users";
-$conditions = [];
+// --- PAGINATION PARAMETERS ---
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+$offset = ($page - 1) * $limit;
+
+// 3. Build Base SQL
+$baseSQL = " FROM users WHERE is_verified = 1 AND user_type = 'student'";
+
 $params = [];
 $types = '';
 
-// Add search condition (searches firstname, surname, and email)
 if (!empty($search)) {
-    $conditions[] = "(firstname LIKE ? OR surname LIKE ? OR email LIKE ?)";
+    $baseSQL .= " AND (firstname LIKE ? OR surname LIKE ? OR email LIKE ?)";
     $searchTerm = "%" . $search . "%";
     array_push($params, $searchTerm, $searchTerm, $searchTerm);
     $types .= 'sss';
 }
 
-// Add course filter
 if (!empty($course)) {
-    $conditions[] = "course = ?";
+    $baseSQL .= " AND course = ?";
     $params[] = $course;
     $types .= 's';
 }
 
-// Add year filter
 if (!empty($year)) {
-    $conditions[] = "year = ?";
+    $baseSQL .= " AND year = ?";
     $params[] = $year;
     $types .= 's';
 }
 
-// Combine conditions if any exist
-if (!empty($conditions)) {
-    $sql .= " AND " . implode(" AND ", $conditions);
+// --- QUERY 1: Get Total Count ---
+$countSql = "SELECT COUNT(*) as total" . $baseSQL;
+$stmtCount = $conn->prepare($countSql);
+if (!empty($params)) {
+    $stmtCount->bind_param($types, ...$params);
 }
+$stmtCount->execute();
+$totalResult = $stmtCount->get_result()->fetch_assoc();
+$totalRecords = $totalResult['total'];
+$stmtCount->close();
 
-$sql .= " ORDER BY surname ASC";
+// --- QUERY 2: Get Data with BOTH Counts (THE FIX) ---
+$sql = "SELECT 
+            id, firstname, surname, course, year, email,
+            -- Subquery 1: Overdue Books
+            (SELECT COUNT(*) FROM issued_books ib 
+             WHERE ib.user_id = users.id 
+             AND ib.status = 'Issued' 
+             AND ib.due_date < CURDATE()) as overdue_count,
+            -- Subquery 2: Total Active Books
+            (SELECT COUNT(*) FROM issued_books ib 
+             WHERE ib.user_id = users.id 
+             AND ib.status = 'Issued') as active_count
+        " . $baseSQL 
+        . " ORDER BY surname ASC LIMIT ? OFFSET ?";
 
-// --- 4. Prepare and Execute ---
+$params[] = $limit;
+$params[] = $offset;
+$types .= "ii";
+
 $stmt = $conn->prepare($sql);
-
-// Bind parameters if any exist
 if (!empty($params)) {
     $stmt->bind_param($types, ...$params);
 }
@@ -69,8 +90,16 @@ while ($row = $result->fetch_assoc()) {
     $users[] = $row;
 }
 
-// --- 5. Return JSON Response ---
-echo json_encode($users);
+// 4. Return JSON
+echo json_encode([
+    'data' => $users,
+    'pagination' => [
+        'totalRecords' => $totalRecords,
+        'totalPages' => ceil($totalRecords / $limit),
+        'currentPage' => $page,
+        'limit' => $limit
+    ]
+]);
 
 $stmt->close();
 $conn->close();

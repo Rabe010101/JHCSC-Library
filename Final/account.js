@@ -14,9 +14,16 @@ function fetchAccountData() {
                 document.getElementById('account-course').textContent = data.user.course;
                 document.getElementById('account-yearLevel').textContent = data.user.year;
                 document.getElementById('account-email').textContent = data.user.email;
-                document.getElementById('account-password').textContent = '********'; // Mask password
+                document.getElementById('account-password').textContent = '********'; // Keep mask on display
+                
+                // --- CHANGE 1: Pre-fill the edit input with the REAL password ---
+                // Since your API now returns 'password', we put it here immediately.
+                if (data.user.password) {
+                    document.getElementById('edit-password').value = data.user.password;
+                }
+                // -------------------------------------------------------------
+
             } else {
-                // Handle cases where user data couldn't be fetched
                 console.error('Could not fetch user data.');
             }
         });
@@ -29,8 +36,10 @@ function showEditForm() {
     document.getElementById('edit-course').value = document.getElementById('account-course').textContent;
     document.getElementById('edit-yearLevel').value = document.getElementById('account-yearLevel').textContent;
     document.getElementById('edit-email').value = document.getElementById('account-email').textContent;
-    document.getElementById('edit-password').value = ''; // Keep password field empty for security
-
+    
+    // --- CHANGE 2: DELETE (or comment out) the line that clears the password ---
+    // document.getElementById('edit-password').value = '';  <-- REMOVED THIS
+    
     // Swap visibility
     document.getElementById('account-info-display').classList.add('hidden');
     document.getElementById('account-edit-form').classList.remove('hidden');
@@ -50,7 +59,7 @@ function saveEdit() {
         course: document.getElementById('edit-course').value,
         yearLevel: document.getElementById('edit-yearLevel').value,
         email: document.getElementById('edit-email').value,
-        password: document.getElementById('edit-password').value // Will be empty if not changed
+        password: document.getElementById('edit-password').value 
     };
 
     // Send the data to the server via a POST request

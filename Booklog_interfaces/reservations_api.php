@@ -45,16 +45,21 @@ switch ($action) {
         $search = $_GET['search'] ?? '';
         $status = $_GET['status'] ?? '';
 
-        // This SQL query is correct and includes otp_expires
-        $sql = "SELECT 
-                    r.id, r.user_id, r.transaction_number, r.reservation_date, r.due_date, r.status, r.otp_expires,
-                    CONCAT(u.firstname, ' ', u.surname) AS name, u.email, b.title AS book_title
-                FROM reservations r
-                JOIN users u ON r.user_id = u.id
-                JOIN books b ON r.book_id = b.id
-                WHERE r.status != 'Claimed'";
+        // --- PAGINATION PARAMETERS ---
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20; // Default 20 per page
+        $offset = ($page - 1) * $limit;
 
-        $conditions = []; $params = []; $types = '';
+        // Base SQL (Shared for Count and Data)
+        // We use "WHERE 1=1" logic inside the conditions array for cleaner appending
+        $baseSQL = " FROM reservations r
+                     JOIN users u ON r.user_id = u.id
+                     JOIN books b ON r.book_id = b.id
+                     WHERE r.status != 'Claimed'";
+
+        $conditions = []; 
+        $params = []; 
+        $types = '';
 
         if (!empty($search)) {
             $conditions[] = "(u.firstname LIKE ? OR u.surname LIKE ? OR u.email LIKE ? OR b.title LIKE ?)";
@@ -69,11 +74,34 @@ switch ($action) {
             $types .= 's';
         }
         
+        // Append extra conditions to Base SQL
         if (!empty($conditions)) {
-            $sql .= " AND " . implode(" AND ", $conditions);
+            $baseSQL .= " AND " . implode(" AND ", $conditions);
         }
-        $sql .= " ORDER BY r.reservation_date DESC";
+
+        // --- QUERY 1: Get Total Count ---
+        $countSql = "SELECT COUNT(*) as total" . $baseSQL;
+        $stmtCount = $conn->prepare($countSql);
+        if (!empty($params)) {
+            $stmtCount->bind_param($types, ...$params);
+        }
+        $stmtCount->execute();
+        $totalResult = $stmtCount->get_result()->fetch_assoc();
+        $totalRecords = $totalResult['total'];
+        $stmtCount->close();
+
+        // --- QUERY 2: Get Data (With Limit/Offset) ---
+        $sql = "SELECT 
+                    r.id, r.user_id, r.transaction_number, r.reservation_date, r.due_date, r.status, r.otp_expires,
+                    CONCAT(u.firstname, ' ', u.surname) AS name, u.email, b.title AS book_title" 
+                . $baseSQL 
+                . " ORDER BY r.reservation_date DESC LIMIT ? OFFSET ?";
         
+        // Add Pagination Params
+        $params[] = $limit;
+        $params[] = $offset;
+        $types .= "ii";
+
         $stmt = $conn->prepare($sql);
         if (!empty($params)) {
             $stmt->bind_param($types, ...$params);
@@ -84,7 +112,18 @@ switch ($action) {
         while($row = $result->fetch_assoc()) {
             $reservations[] = $row;
         }
-        echo json_encode($reservations);
+
+        // Return structured JSON
+        echo json_encode([
+            'data' => $reservations,
+            'pagination' => [
+                'totalRecords' => $totalRecords,
+                'totalPages' => ceil($totalRecords / $limit),
+                'currentPage' => $page,
+                'limit' => $limit
+            ]
+        ]);
+        
         $stmt->close();
         break;
 
@@ -153,7 +192,7 @@ switch ($action) {
         }
         break;
 
-    // --- ACTION 2: Verify OTP and Issue Book ---
+    // --- ACTION 2: Verify OTP and Issue Book (CRASH PROOF) ---
     case 'verifyAndClaimReservation':
         $reservationId = $data['reservationId'] ?? 0;
         $submittedOTP = $data['otp'] ?? '';
@@ -163,8 +202,13 @@ switch ($action) {
             break;
         }
 
-        // Get the stored OTP from the database
-        $stmt_get = $conn->prepare("SELECT * FROM reservations WHERE id = ?");
+        $stmt_get = $conn->prepare("
+            SELECT r.*, b.title as book_title, u.email as user_email 
+            FROM reservations r
+            JOIN books b ON r.book_id = b.id
+            JOIN users u ON r.user_id = u.id
+            WHERE r.id = ?
+        ");
         $stmt_get->bind_param("i", $reservationId);
         $stmt_get->execute();
         $reservation = $stmt_get->get_result()->fetch_assoc();
@@ -175,38 +219,73 @@ switch ($action) {
             break;
         }
 
-        // Check if OTP is expired
-        if (strtotime($reservation['otp_expires']) < time()) {
+        // Check if OTP is expired (Using timezone fix)
+        $otpExpires = new DateTime(str_replace(' ', 'T', $reservation['otp_expires']) . 'Z');
+        $now = new DateTime();
+        
+        if ($otpExpires < $now) {
             echo json_encode(['success' => false, 'message' => 'OTP has expired. Please send a new one.']);
             break;
         }
 
-        // Check if OTP matches
         if (password_verify($submittedOTP, $reservation['otp_code'])) {
-            // SUCCESS!
+            // SUCCESS! 
             $conn->begin_transaction();
             try {
-                // Insert into issued_books
+                // 1. Insert into issued_books
                 $stmt_insert = $conn->prepare("INSERT INTO issued_books (user_id, book_id, transaction_number, due_date, status) VALUES (?, ?, ?, ?, 'Issued')");
                 $stmt_insert->bind_param("iiss", $reservation['user_id'], $reservation['book_id'], $reservation['transaction_number'], $reservation['due_date']);
                 $stmt_insert->execute();
                 
-                // Delete from reservations
+                // 2. Delete from reservations
                 $stmt_delete = $conn->prepare("DELETE FROM reservations WHERE id = ?");
                 $stmt_delete->bind_param("i", $reservationId);
                 $stmt_delete->execute();
                 
                 $conn->commit();
-                echo json_encode(['success' => true, 'message' => 'Book has been issued successfully.']);
+
+                // --- GOOGLE CALENDAR INTEGRATION (SAFE MODE) ---
+                try {
+                    $client = new Google\Client();
+                    $client->setAuthConfig('../service_account_key.json'); 
+                    $client->addScope(Google\Service\Calendar::CALENDAR);
+                    $service = new Google\Service\Calendar($client);
+
+                    $dueDate = $reservation['due_date'];
+                    
+                    $event = new Google\Service\Calendar\Event([
+                        'summary' => 'DUE: ' . $reservation['book_title'],
+                        'location' => 'JHCSC Library',
+                        'description' => 'Reminder: Please return your borrowed book to the library today.',
+                        'start' => [
+                            'date' => $dueDate,
+                            'timeZone' => 'Asia/Manila',
+                        ],
+                        'end' => [
+                            'date' => $dueDate,
+                            'timeZone' => 'Asia/Manila',
+                        ],
+                        // REMOVED 'attendees' TO FIX THE CRASH
+                    ]);
+
+                    $calendarId = 'primary';
+                    $event = $service->events->insert($calendarId, $event);
+                    
+                } catch (\Throwable $e) {
+                    // We use \Throwable to catch EVERYTHING, even Google Errors.
+                    // This ensures the book is still issued even if Calendar fails.
+                }
+                // ------------------------------------------------
+
+                echo json_encode(['success' => true, 'message' => 'Book issued successfully!']);
 
             } catch (Exception $e) {
                 $conn->rollback();
-                echo json_encode(['success' => false, 'message' => 'Failed to issue the book. Database error.']);
+                echo json_encode(['success' => false, 'message' => 'Failed to issue book. ' . $e->getMessage()]);
             }
 
         } else {
-            // OTP is incorrect
-            echo json_encode(['success' => false, 'message' => 'Invalid OTP. Please try again.']);
+            echo json_encode(['success' => false, 'message' => 'Invalid OTP.']);
         }
         break;
 

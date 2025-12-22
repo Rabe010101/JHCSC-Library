@@ -1,7 +1,7 @@
 /* Base styles */
 body {
     font-family: 'Inter', sans-serif;
-    background-image: url('../images/red.jpg');
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('../images/red.jpg');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -10,24 +10,25 @@ body {
 
 
 header {
-    width: 100vw;
-    position: relative;
-    left: 50%;
-    right: 50%;
-    margin-left: -50vw;
-    margin-right: -50vw;
-    margin-top: -15px;
-    background: #fff;
-    color: #222;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    z-index: 10;
+    width: 100%;
+    position: sticky; /* Stays at the top when scrolling */
+    top: 0;
+    z-index: 50;
+    background: rgba(255, 255, 255, 0.85); /* Semi-transparent */
+    backdrop-filter: blur(12px); /* Blur the image behind it */
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    justify-content: center; /* Center the inner content */
+    transition: background 0.3s ease;
 }
 
 /* Container styling for consistent layout */
 .container-wrapper {
-    max-width: 1200px;
+    max-width: 100%;
     width: 100%;
     box-sizing: border-box;
+    padding: 0 2rem;
 }
 
 
@@ -221,4 +222,23 @@ header {
     background-color: #139734;
     color: #fff;
     font-weight: 500;
+}
+
+.nav-link {
+    color: #4b5563;
+    font-weight: 500;
+    padding: 0.5rem 1.25rem;
+    border-radius: 9999px; /* Pill shape */
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    background-color: rgba(19, 151, 52, 0.1); /* Light green tint */
+    color: #139734;
+}
+
+.nav-link.active {
+    background-color: #139734;
+    color: white; /* White text on green background */
+    box-shadow: 0 2px 5px rgba(19, 151, 52, 0.3);
 }

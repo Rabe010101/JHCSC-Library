@@ -32,7 +32,7 @@
     <button class="btn-add" id="openModal">Add</button>
   </div>
 
-  <div class="table-container">
+  <div class="table-container" style="position: relative; padding-bottom: 60px;">
     <table id="booksTable">
       <thead>
         <tr>
@@ -49,8 +49,14 @@
       <tbody id="booksTableBody">
         </tbody>
     </table>
+
+    <div id="pagination-controls" style="position: absolute; bottom: 15px; right: 20px; display: flex; align-items: center; gap: 10px;">
+        <span id="page-info" style="font-size: 14px; color: #555;"></span>
+        <button id="prev-btn" class="btn-edit" style="background: #ccc; cursor: not-allowed;" disabled>Previous</button>
+        <button id="next-btn" class="btn-edit">Next</button>
+    </div>
   </div>
-  
+
   <div id="bookModal" class="modal">
     <div class="modal-content">
       <span class="close" id="closeModal">&times;</span>
